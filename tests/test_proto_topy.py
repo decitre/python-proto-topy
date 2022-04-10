@@ -1,5 +1,4 @@
-
-from proto_topy import main
+import proto_topy
 
 
 def test_main():

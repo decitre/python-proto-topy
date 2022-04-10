@@ -71,12 +71,12 @@ You can also install the in-development version with::
     pip install https://github.com/decitre/python-proto-topy/archive/master.zip
 
 
+<!--
 Documentation
 =============
 
 
 https://python-proto-topy.readthedocs.io/
-
 
 Development
 ===========
@@ -101,3 +101,4 @@ Note, to combine the coverage data from all the tox environments run:
       - ::
 
             PYTEST_ADDOPTS=--cov-append tox
+-->
