@@ -60,7 +60,7 @@ class ProtoDict:
             for module_core_name, proto in self.protos.items():
                 Path(src, proto.package_path).mkdir(parents=True, exist_ok=True)
                 proto_file_path = Path(src, proto.package_path, proto.file_name)
-                proto_file_paths.append(proto_file_path)
+                proto_file_paths.append(proto_file_path.name)
                 with open(proto_file_path, "wt") as o:
                     o.write(proto.content)
             with TemporaryDirectory() as out:
