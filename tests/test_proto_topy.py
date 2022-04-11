@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 from distutils.spawn import find_executable
 
-protoc_path = Path(find_executable("protoc") or "/usr/local/bin/protoc")
+protoc_path = Path(find_executable("protoc"))
 
 
 def test_add_proto():
