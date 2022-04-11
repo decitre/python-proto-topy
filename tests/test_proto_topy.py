@@ -72,5 +72,3 @@ def _test_compile_simple_dependency():
     other_proto = ProtoModule(file_name="other.proto", content='syntax = "proto3";')
     proto_dict = ProtoDict(protoc_path, proto, other_proto)
     proto_dict.compile()
-
-

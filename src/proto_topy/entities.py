@@ -23,12 +23,7 @@ class ProtoModule:
     def set_module(self, content: str):
         self.module_source = content
         self.module = types.ModuleType(self.module_core_name)
-        #print(content)
-        #exec("import google", self.module.__dict__)
-        #import google.protobuf
         exec(content, globals(), self.module.__dict__)
-        #print(self.module.__dict__)
-
 
 
 class NoCompiler(Exception):
