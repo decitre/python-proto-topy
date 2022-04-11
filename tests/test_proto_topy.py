@@ -7,15 +7,15 @@ protoc_path = Path(find_executable("protoc"))
 
 
 def test_add_proto():
-    proto = ProtoModule(file_name="test.proto", content="")
+    proto = ProtoModule(file_path="test.proto", content="")
     proto_dict = ProtoDict(compiler_path=protoc_path)
     proto_dict.add_proto(proto)
     assert "test" in proto_dict.protos
 
 
 def test_add_proto2():
-    proto_dict = ProtoDict(protoc_path, *(ProtoModule(file_name="test1.proto", content=""),
-                                          ProtoModule(file_name="test2.proto", content="")),)
+    proto_dict = ProtoDict(protoc_path, *(ProtoModule(file_path="test1.proto", content=""),
+                                          ProtoModule(file_path="test2.proto", content="")),)
     assert "test1" in proto_dict.protos
     assert "test2" in proto_dict.protos
 
@@ -32,14 +32,14 @@ def test_no_protoc():
 
 
 def test_compile_wrong_proto():
-    proto_dict = ProtoDict(protoc_path, ProtoModule(file_name="test.proto", content=""))
+    proto_dict = ProtoDict(protoc_path, ProtoModule(file_path="test.proto", content=""))
     with pytest.raises(CompilationFailed):
         proto_dict.compile()
 
 
 def test_compile_minimal_proto():
     module_name = "test"
-    proto = ProtoModule(file_name=f"{module_name}.proto", content="""
+    proto = ProtoModule(file_path=f"{module_name}.proto", content="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
     message test {
@@ -55,7 +55,7 @@ def test_compile_minimal_proto():
 
 
 def test_compile_missing_dependency():
-    proto = ProtoModule(file_name="test.proto", content="""
+    proto = ProtoModule(file_path="test.proto", content="""
     syntax = "proto3";
     import "other.proto";
     """)
@@ -65,10 +65,10 @@ def test_compile_missing_dependency():
 
 
 def _test_compile_simple_dependency():
-    proto = ProtoModule(file_name="test.proto", content="""
+    proto = ProtoModule(file_path="test.proto", content="""
     syntax = "proto3";
     import "other.proto";
     """)
-    other_proto = ProtoModule(file_name="other.proto", content='syntax = "proto3";')
+    other_proto = ProtoModule(file_path="other.proto", content='syntax = "proto3";')
     proto_dict = ProtoDict(protoc_path, proto, other_proto)
     proto_dict.compile()

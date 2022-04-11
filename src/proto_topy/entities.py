@@ -12,11 +12,11 @@ logger = getLogger(__file__)
 
 
 class ProtoModule:
-    def __init__(self, file_name: str, content: str, package_path: str = None):
-        self.file_name = file_name
-        self.module_core_name, _, _ = file_name.partition(".proto")
+    def __init__(self, file_path: str, content: str):
+        self.file_path = file_path
+        self.module_core_name, _, _ = Path(file_path).name.partition(".proto")
         self.content = content
-        self.package_path = package_path or ""
+        self.package_path = Path(file_path).parent
         self.module = None
         self.module_source = None
 
@@ -59,12 +59,12 @@ class ProtoDict:
         with TemporaryDirectory() as src:
             for module_core_name, proto in self.protos.items():
                 Path(src, proto.package_path).mkdir(parents=True, exist_ok=True)
-                proto_file_path = Path(src, proto.package_path, proto.file_name)
-                proto_file_paths.append(proto_file_path.name)
+                proto_file_path = Path(src, proto.file_path)
+                proto_file_paths.append(str(proto_file_path))
                 with open(proto_file_path, "wt") as o:
                     o.write(proto.content)
             with TemporaryDirectory() as out:
-                protoc_command = [self.compiler_path.resolve().name, f"--proto_path={src}", f"--python_out={out}"]
+                protoc_command = [str(self.compiler_path.resolve()), f"--proto_path={src}", f"--python_out={out}"]
                 protoc_command.extend(proto_file_paths)
                 compilation = Popen(protoc_command, stdout=PIPE, stderr=PIPE)
                 compilation.wait()
@@ -73,5 +73,5 @@ class ProtoDict:
                     logger.warning(errs.decode())
                     raise CompilationFailed(errs)
                 for module_core_name, proto in self.protos.items():
-                    with open(Path(out, f"{proto.module_core_name}_pb2.py")) as module_path:
+                    with open(Path(out, proto.package_path, f"{proto.module_core_name}_pb2.py")) as module_path:
                         proto.set_module(module_path.read())
