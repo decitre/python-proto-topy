@@ -64,7 +64,7 @@ class ProtoDict:
                 with open(proto_file_path, "wt") as o:
                     o.write(proto.content)
             with TemporaryDirectory() as out:
-                protoc_command = [self.compiler_path.resolve(), f"--proto_path={src}", f"--python_out={out}"]
+                protoc_command = [self.compiler_path.resolve().name, f"--proto_path={src}", f"--python_out={out}"]
                 protoc_command.extend(proto_file_paths)
                 compilation = Popen(protoc_command, stdout=PIPE, stderr=PIPE)
                 compilation.wait()
