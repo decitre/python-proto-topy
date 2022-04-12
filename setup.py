@@ -95,7 +95,7 @@ if __name__ == '__main__':
             'Issue Tracker': f'{github_home}/python-{project_name}/issues',
         },
         keywords=['protobuf'],
-        python_requires='>=3.6',
+        python_requires='>=3.7',
         install_requires=requirements,
         extras_require={
             "dev": requirements_test
