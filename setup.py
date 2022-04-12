@@ -69,8 +69,8 @@ if __name__ == '__main__':
     setup(
         name=project_name,
         version=version,
-        license='LGPL-3.0-or-later',
-        description='Yet another tool to compile .proto to in memory modules',
+        license='MIT',
+        description='Yet another tool that compiles .proto strings and import the outcome Python modules.',
         long_description=re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         author='Emmanuel Decitre',
         url=f'{github_home}/python-{project_name}',
@@ -81,26 +81,24 @@ if __name__ == '__main__':
         zip_safe=False,
         classifiers=[
             # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
+            'License :: OSI Approved :: MIT License',
+            'Programming Language :: Python :: 3',
             "Programming Language :: Python :: 3 :: Only",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
-            "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+            'Programming Language :: Python :: Implementation :: CPython',
             "Operating System :: OS Independent",
         ],
         project_urls={
             'Issue Tracker': f'{github_home}/python-{project_name}/issues',
         },
-        keywords=[
-            # eg: 'keyword1', 'keyword2', 'keyword3',
+        keywords=['protobuf',
         ],
         python_requires='>=3.6',
         install_requires=requirements,
         extras_require={
             "dev": requirements_test
-            # eg:
-            #   'rst': ['docutils>=0.11'],
-            #   ':python_version=="2.6"': ['argparse'],
         },
     )

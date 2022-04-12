@@ -55,9 +55,9 @@ Overview
 
 .. end-badges
 
-Yet another tool to compile .proto to in memory modules
+Yet another tool that compiles .proto strings and import the outcome Python modules.
 
-* Free software: GNU Lesser General Public License v3 or later (LGPLv3+)
+* Free software: MIT license
 
 Installation
 ============
