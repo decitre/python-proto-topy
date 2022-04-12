@@ -64,13 +64,12 @@ class ProtoDict:
         self.protos[proto.file_path] = proto
 
     def compile(self):
-        # proto_file_paths = []
         with TemporaryDirectory() as dir:
             protoc_command = [str(self.compiler_path.resolve()), f"--proto_path={dir}", f"--python_out={dir}"]
 
-            protos_target_paths = {Path(dir, proto.file_path):proto for proto in self.protos.values()}
+            protos_target_paths = {Path(dir, proto.file_path): proto for proto in self.protos.values()}
+            protoc_command.extend([str(file_path) for file_path in protos_target_paths.keys()])
             ProtoDict.marshal(protos_target_paths)
-            protoc_command.extend(protos_target_paths)
 
             compilation = Popen(protoc_command, stdout=PIPE, stderr=PIPE)
             compilation.wait()
@@ -87,6 +86,5 @@ class ProtoDict:
     def marshal(protos: Dict[Path, ProtoModule]) -> None:  # , proto_file_paths):
         for target_file_path, proto in protos.items():
             Path(target_file_path.stem).mkdir(parents=True, exist_ok=True)
-            #proto_file_paths.append(str(proto_file_path))
             with open(str(target_file_path), "wt") as o:
                 o.write(proto.content)
