@@ -1,23 +1,24 @@
 from proto_topy.entities import ProtoDict, ProtoModule, CompilationFailed
 import pytest
+import os
 from pathlib import Path
 from distutils.spawn import find_executable
 
-protoc_path = Path(find_executable("protoc"))
+protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
 
 
 def test_add_proto():
     proto = ProtoModule(file_path="test.proto", content="")
     proto_dict = ProtoDict(compiler_path=protoc_path)
     proto_dict.add_proto(proto)
-    assert "test" in proto_dict.protos
+    assert "test.proto" in proto_dict.protos
 
 
 def test_add_proto2():
     proto_dict = ProtoDict(protoc_path, *(ProtoModule(file_path="test1.proto", content=""),
                                           ProtoModule(file_path="test2.proto", content="")),)
-    assert "test1" in proto_dict.protos
-    assert "test2" in proto_dict.protos
+    assert "test1.proto" in proto_dict.protos
+    assert "test2.proto" in proto_dict.protos
 
 
 def test_bad_protoc():

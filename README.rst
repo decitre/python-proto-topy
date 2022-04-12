@@ -47,9 +47,9 @@ Overview
     :alt: Supported implementations
     :target: https://pypi.org/project/proto-topy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/decitre/python-proto-topy/v0.0.4.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/decitre/python-proto-topy/v0.0.5.svg
     :alt: Commits since latest release
-    :target: https://github.com/decitre/python-proto-topy/compare/v0.0.4...master
+    :target: https://github.com/decitre/python-proto-topy/compare/v0.0.5...master
 
 
 
@@ -69,3 +69,4 @@ Installation
 You can also install the in-development version with::
 
     pip install https://github.com/decitre/python-proto-topy/archive/master.zip
+
