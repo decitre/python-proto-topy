@@ -90,7 +90,7 @@ def test_compile_ununsed_dependency():
     import "google/protobuf/timestamp.proto";
     message other_thing {
         google.protobuf.Timestamp created = 1;
-    }    
+    }
     """)
     proto_dict = ProtoDict(protoc_path, proto, other_proto)
     proto_dict.compile()
@@ -99,18 +99,17 @@ def test_compile_ununsed_dependency():
 def test_compile_simple_dependency():
     proto = ProtoModule(file_path=Path("p3/p4/test6.proto"), content="""
     syntax = "proto3";
-    import "p1/p2/other.proto";
+    import "p1/p2/other2.proto";
     message test6 {
-        other_thing foo = 1;
+        other2_thing foo = 1;
     };
     """)
-    other_proto = ProtoModule(file_path=Path("p1/p2/other.proto"), content="""
+    other_proto = ProtoModule(file_path=Path("p1/p2/other2.proto"), content="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
-    message other_thing {
+    message other2_thing {
         google.protobuf.Timestamp created = 1;
-    }    
+    }
     """)
     proto_dict = ProtoDict(protoc_path, proto, other_proto)
     proto_dict.compile()
-

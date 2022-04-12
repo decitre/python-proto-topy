@@ -28,7 +28,7 @@ class ProtoModule:
         self.module = None
         self.module_source = None
 
-    def set_module(self, content: str, global_scope: dict=None):
+    def set_module(self, content: str, global_scope: dict = None):
         self.module_source = content
         self.module = types.ModuleType(self.module_core_name)
         compiled_content = compile(content, self.module_core_name, "exec")
@@ -64,7 +64,7 @@ class ProtoDict:
     def add_proto(self, proto: ProtoModule):
         self.protos[proto.file_path] = proto
 
-    def compile(self, global_scope: dict=None):
+    def compile(self, global_scope: dict = None):
         with TemporaryDirectory() as dir:
             protoc_command = [str(self.compiler_path.resolve()), f"--proto_path={dir}", f"--python_out={dir}"]
 
@@ -87,6 +87,8 @@ class ProtoDict:
 
     def raise_for_errs(self, errs: bytes) -> None:
         warnings = []
+        if not errs:
+            return
         for err_line in errs.decode().strip().split("\n"):
             if "warning:" in err_line and err_line.endswith(".proto is unused."):
                 continue
