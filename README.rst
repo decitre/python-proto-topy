@@ -47,9 +47,9 @@ Overview
     :alt: Supported implementations
     :target: https://pypi.org/project/proto-topy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/decitre/python-proto-topy/v0.0.9.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/decitre/python-proto-topy/v0.0.10.svg
     :alt: Commits since latest release
-    :target: https://github.com/decitre/python-proto-topy/compare/v0.0.9...master
+    :target: https://github.com/decitre/python-proto-topy/compare/v0.0.10...master
 
 
 
