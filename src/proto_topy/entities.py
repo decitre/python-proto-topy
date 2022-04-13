@@ -13,16 +13,16 @@ logger = getLogger(Path(__file__).name)
 
 
 class ProtoModule:
-    file_path: str
+    name: str
     package_path: str
-    module_core_name: str
+    file_path: str
     proto_content: str
     module_source: str
     module: types.ModuleType
 
     def __init__(self, file_path: Path, content: str):
         self.file_path = Path(file_path)
-        self.module_core_name, _, _ = self.file_path.name.partition(".proto")
+        self.name, _, _ = self.file_path.name.partition(".proto")
         self.content = content
         self.package_path = self.file_path.parent
         self.module = None
@@ -30,9 +30,10 @@ class ProtoModule:
 
     def set_module(self, content: str, global_scope: dict = None):
         self.module_source = content
-        self.module = types.ModuleType(self.module_core_name)
-        compiled_content = compile(content, self.module_core_name, "exec")
-        exec(compiled_content, global_scope or globals(), self.module.__dict__)
+        spec = importlib.util.spec_from_loader(self.name, loader=None)
+        compiled_content = compile(content, self.name, "exec")
+        self.module = module = importlib.util.module_from_spec(spec)
+        exec(compiled_content, self.module.__dict__)
 
 
 class NoCompiler(Exception):
@@ -86,7 +87,7 @@ class ProtoModules:
 
             sys.path.append(dir)
             for proto in self.protos.values():
-                with open(Path(dir, proto.package_path, f"{proto.module_core_name}_pb2.py")) as module_path:
+                with open(Path(dir, proto.package_path, f"{proto.name}_pb2.py")) as module_path:
                     proto.set_module(module_path.read(), global_scope=global_scope)
             sys.path.pop()
 
