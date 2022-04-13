@@ -9,15 +9,15 @@ protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
 
 
 def test_add_proto():
-    proto = ProtoModule(file_path=Path("test1.proto"), content="")
+    proto = ProtoModule(file_path=Path("test1.proto"), source="")
     modules = ProtoCollection(compiler_path=protoc_path)
     modules.add_proto(proto)
     assert Path("test1.proto") in modules.modules
 
 
 def test_add_proto2():
-    modules = ProtoCollection(protoc_path, *(ProtoModule(file_path=Path("test2.proto"), content=""),
-                                             ProtoModule(file_path=Path("test3.proto"), content="")), )
+    modules = ProtoCollection(protoc_path, *(ProtoModule(file_path=Path("test2.proto"), source=""),
+                                             ProtoModule(file_path=Path("test3.proto"), source="")), )
     assert Path("test2.proto") in modules.modules
     assert Path("test3.proto") in modules.modules
 
@@ -34,14 +34,14 @@ def test_no_protoc():
 
 
 def test_compile_wrong_proto():
-    modules = ProtoCollection(protoc_path, ProtoModule(file_path=Path("test4.proto"), content=""))
+    modules = ProtoCollection(protoc_path, ProtoModule(file_path=Path("test4.proto"), source=""))
     with pytest.raises(CompilationFailed):
         modules.compile()
 
 
 def test_compile_minimal_proto():
     from google.protobuf.timestamp_pb2 import Timestamp
-    proto = ProtoModule(file_path=Path("test5.proto"), content="""
+    proto = ProtoModule(file_path=Path("test5.proto"), source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
     message Test5 {
@@ -58,7 +58,7 @@ def test_compile_minimal_proto():
 
 def test_compile_minimal_proto_in_a_package():
     from google.protobuf.timestamp_pb2 import Timestamp
-    proto = ProtoModule(file_path=Path("p1/p2/p3/thing.proto"), content="""
+    proto = ProtoModule(file_path=Path("p1/p2/p3/thing.proto"), source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
     message Thing {
@@ -77,7 +77,7 @@ def test_compile_minimal_proto_in_a_package():
 
 
 def test_compile_missing_dependency():
-    proto = ProtoModule(file_path=Path("test.proto"), content="""
+    proto = ProtoModule(file_path=Path("test.proto"), source="""
     syntax = "proto3";
     import "other.proto";
     """)
@@ -87,11 +87,11 @@ def test_compile_missing_dependency():
 
 
 def test_compile_ununsed_dependency():
-    proto = ProtoModule(file_path=Path("test.proto"), content="""
+    proto = ProtoModule(file_path=Path("test.proto"), source="""
     syntax = "proto3";
     import "other.proto";
     """)
-    other_proto = ProtoModule(file_path=Path("other.proto"), content="""
+    other_proto = ProtoModule(file_path=Path("other.proto"), source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
     message OtherThing {
@@ -104,14 +104,14 @@ def test_compile_ununsed_dependency():
 
 def test_compile_simple_dependency():
     from google.protobuf.timestamp_pb2 import Timestamp
-    proto = ProtoModule(file_path=Path("p3/p4/test6.proto"), content="""
+    proto = ProtoModule(file_path=Path("p3/p4/test6.proto"), source="""
     syntax = "proto3";
     import "p1/p2/other2.proto";
     message Test6 {
         OtherThing2 foo = 1;
     };
     """)
-    other_proto = ProtoModule(file_path=Path("p1/p2/other2.proto"), content="""
+    other_proto = ProtoModule(file_path=Path("p1/p2/other2.proto"), source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
     message OtherThing2 {

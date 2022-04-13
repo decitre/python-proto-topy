@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from subprocess import PIPE, STDOUT, check_output, Popen
-import importlib
+import importlib.util
 import sys
 import types
 from typing import Dict
@@ -14,16 +14,16 @@ logger = getLogger(Path(__file__).name)
 
 class ProtoModule:
     name: str
-    package_path: str
-    file_path: str
-    proto_source: str
+    package_path: Path
+    file_path: Path
+    source: str
     py_source: str
     py: types.ModuleType
 
-    def __init__(self, file_path: Path, content: str):
-        self.file_path = Path(file_path)
+    def __init__(self, file_path: Path, source: str):
+        self.file_path = file_path
         self.name, _, _ = self.file_path.name.partition(".proto")
-        self.content = content
+        self.source = source
         self.package_path = self.file_path.parent
         self.py = None
         self.py_source = None
@@ -45,14 +45,14 @@ class CompilationFailed(Exception):
 
 
 class ProtoCollection:
-    compiler_path: str
+    compiler_path: Path
     modules: Dict[Path, ProtoModule]
-    file_descriptor_set: bytes
+    descriptor_data: bytes
 
     def __init__(self, compiler_path: Path, *protos: ProtoModule):
         self.modules = {}
         self.compiler_path = compiler_path
-        self.file_descriptor_set = None
+        self.descriptor_data = None
 
         if not self.compiler_path:
             if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
@@ -81,7 +81,7 @@ class ProtoCollection:
             compile_to_py_options = ["--include_imports", f"--proto_path={dir}", f"--descriptor_set_out={artifact_fds_path}"]
             ProtoCollection._do_compile(self.compiler_path, compile_to_py_options, proto_source_files)
             with open(str(artifact_fds_path), mode="rb") as f:
-                self.file_descriptor_set = f.read()
+                self.descriptor_data = f.read()
 
             self._add_init_files(dir)
 
@@ -129,4 +129,4 @@ class ProtoCollection:
         for target_file_path, proto in protos.items():
             Path(target_file_path.parent).mkdir(parents=True, exist_ok=True)
             with open(str(target_file_path), "wt") as o:
-                o.write(proto.content)
+                o.write(proto.source)
