@@ -16,9 +16,9 @@ class ProtoModule:
     file_path: str
     package_path: str
     module_core_name: str
-    content: str
+    proto_content: str
     module_source: str
-    module: str
+    module: types.ModuleType
 
     def __init__(self, file_path: Path, content: str):
         self.file_path = Path(file_path)
@@ -43,13 +43,16 @@ class CompilationFailed(Exception):
     pass
 
 
-class ProtoDict:
+class ProtoModules:
     compiler_path: str
-    protos: Dict[str, ProtoModule]
+    protos: Dict[Path, ProtoModule]
+    file_descriptor_set: bytes
 
     def __init__(self, compiler_path: Path, *protos: ProtoModule):
         self.protos = {}
         self.compiler_path = compiler_path
+        self.file_descriptor_set = None
+
         if not self.compiler_path:
             if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
                 self.compiler_path = Path(os.environ['PROTOC'])
@@ -64,18 +67,20 @@ class ProtoDict:
     def add_proto(self, proto: ProtoModule):
         self.protos[proto.file_path] = proto
 
-    def compile(self, global_scope: dict = None):
+    def compile(self, global_scope: dict = None) -> None:
         with TemporaryDirectory() as dir:
-            protoc_command = [str(self.compiler_path.resolve()), f"--proto_path={dir}", f"--python_out={dir}"]
-
             protos_target_paths = {Path(dir, proto.file_path): proto for proto in self.protos.values()}
-            protoc_command.extend([str(file_path) for file_path in protos_target_paths.keys()])
-            ProtoDict.marshal(protos_target_paths)
+            proto_source_files = [str(file_path) for file_path in protos_target_paths.keys()]
+            ProtoModules.marshal(protos_target_paths)
 
-            compilation = Popen(protoc_command, stdout=PIPE, stderr=PIPE)
-            compilation.wait()
-            outs, errs = compilation.communicate()
-            self.raise_for_errs(errs)
+            compile_to_py_options = [f"--proto_path={dir}", f"--python_out={dir}"]
+            ProtoModules._do_compile(self.compiler_path, compile_to_py_options, proto_source_files)
+
+            artifact_fds_path = Path(dir, "artifacts.fds")
+            compile_to_py_options = ["--include_imports", f"--proto_path={dir}", f"--descriptor_set_out={artifact_fds_path}"]
+            ProtoModules._do_compile(self.compiler_path, compile_to_py_options, proto_source_files)
+            with open(str(artifact_fds_path), mode="rb") as f:
+                self.file_descriptor_set = f.read()
 
             self.add_init_files(dir)
 
@@ -85,18 +90,32 @@ class ProtoDict:
                     proto.set_module(module_path.read(), global_scope=global_scope)
             sys.path.pop()
 
-    def raise_for_errs(self, errs: bytes) -> None:
+    @staticmethod
+    def _do_compile(compiler_path: Path, compile_to_py_options: list, proto_source_files: list) -> None:
+        compile_command = [str(compiler_path.resolve())]
+        compile_command.extend(compile_to_py_options)
+        compile_command.extend(proto_source_files)
+        compilation = Popen(compile_command, stdout=PIPE, stderr=PIPE)
+        compilation.wait()
+        outs, errs = compilation.communicate()
+        ProtoModules.raise_for_errs(errs)
+
+    @staticmethod
+    def raise_for_errs(errs: bytes) -> None:
         warnings = []
+        errors = []
         if not errs:
             return
         for err_line in errs.decode().strip().split("\n"):
             if "warning:" in err_line and err_line.endswith(".proto is unused."):
+                warnings.append(err_line)
                 continue
-            warnings.append(err_line)
+            errors.append(err_line)
 
         if warnings:
             logger.warning("\n".join(warnings))
-            raise CompilationFailed("\n".join(warnings))
+        if errors:
+            raise CompilationFailed("\n".join(errors))
 
     def add_init_files(self, base_dir: Path) -> None:
         for proto in self.protos.values():
