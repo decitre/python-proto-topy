@@ -1,4 +1,4 @@
-from proto_topy.entities import ProtoCollection, ProtoModule, CompilationFailed, DelimitedMessage
+from proto_topy.entities import ProtoCollection, ProtoModule, CompilationFailed, DelimitedMessageFactory
 import pytest
 import os
 import sys
@@ -151,6 +151,22 @@ def test_decode_message():
 def test_decode_messages_stream():
     proto = ProtoModule(file_path=Path("test10.proto"),
                         source='syntax = "proto3"; message Test10 { int32 foo = 1; };').compiled(protoc_path)
-    message = DelimitedMessage(BytesIO(), *(proto.py.Test10(foo=foo) for foo in [1, 12]))
-    message.stream.seek(0)
-    assert [thing.foo for thing in message.read(proto.py.Test10)] == [1, 12]
+    factory = DelimitedMessageFactory(BytesIO(),
+                                      *(proto.py.Test10(foo=foo) for foo in [1, 12]))
+    factory.stream.seek(0)
+    assert [thing.foo for thing in factory.message_read(proto.py.Test10)] == [1, 12]
+
+
+def test_decode_messages_stream2():
+    proto = ProtoModule(file_path=Path("test10.proto"),
+                        source='syntax = "proto3"; message Test10 { int32 foo = 1; };').compiled(protoc_path)
+    message = DelimitedMessageFactory(BytesIO(), *(proto.py.Test10(foo=foo) for foo in [1, 12]))
+
+    for fn in message.read, message.bytes_read:
+        message.stream.seek(0)
+        foos = []
+        for data in fn():
+            aTest10 = proto.py.Test10()
+            aTest10.ParseFromString(data)
+            foos.append(aTest10.foo)
+        assert foos == [1, 12]

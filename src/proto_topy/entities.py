@@ -3,6 +3,7 @@ from google.protobuf.message_factory import GetMessages
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint32
 from google.protobuf.message import Message
+from google.protobuf.internal import api_implementation
 
 import os
 import importlib.util
@@ -13,11 +14,16 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from subprocess import PIPE, Popen
 from io import BytesIO
-from typing import Dict, ClassVar
+from typing import Dict, ClassVar, Union, Generator
 from logging import getLogger
 
 
 logger = getLogger(Path(__file__).name)
+
+
+if api_implementation._default_implementation_type != "cpp":
+    logger.warning("You are using a protobuf module without the C++ implementation. "
+                   "Protobuf operations will be significantly slower.")
 
 
 class ProtoModule:
@@ -154,19 +160,48 @@ class ProtoCollection:
                 o.write(proto.source)
 
 
-class DelimitedMessage:
-    def __init__(self, stream: BytesIO, *messages: Message):
+class DelimitedMessageFactory:
+    def __init__(self, stream: BytesIO, *messages: Message, message_type: ClassVar = None):
         self.stream = stream
+        self.message_type = message_type
+        if message_type is None:
+            self.read = self.bytes_read
+        else:
+            self.read = self.message_read
         if messages:
             self.write(*messages)
 
+    def read(self) -> Union[Generator[Message, None, None], Generator[bytearray, None, None]]:
+        raise NotImplementedError()
+
     def write(self, *messages: Message):
         for message in messages:
+            if self.message_type is None:
+                self.message_type = type(message)
+            if not isinstance(message, self.message_type):
+                raise TypeError(f"Inconsistent type: {message.__class__.__name__} "
+                                f"<> {self.message_type.__class__.__name__}")
             self.stream.write(_VarintBytes(message.ByteSize()))
             self.stream.write(message.SerializeToString())
 
-    def read(self, message_type: ClassVar):
+    def bytes_read(self) -> Generator[bytearray, None, None]:
         buf = bytearray(self.stream.read(10))
+        while buf:
+            msg_len, new_pos = _DecodeVarint32(buf, 0)
+            buf = buf[new_pos:]
+            remaining_len = msg_len - len(buf)
+            if remaining_len < 0:
+                yield buf[:remaining_len].copy()
+                buf = buf[remaining_len:]
+            else:
+                buf.extend(self.stream.read(remaining_len))
+                yield buf.copy()
+                buf = buf[msg_len:]
+            buf.extend(self.stream.read(10 - len(buf)))
+
+    def message_read(self, message_type: ClassVar=None) -> Generator[Message, None, None]:
+        buf = bytearray(self.stream.read(10))
+        message_type = message_type or self.message_type
         while buf:
             msg_len, new_pos = _DecodeVarint32(buf, 0)
             buf = buf[new_pos:]
