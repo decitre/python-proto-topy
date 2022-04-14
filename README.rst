@@ -7,19 +7,14 @@ Overview
 .. list-table::
     :stub-columns: 1
 
-    * - docs
-      - |docs|
     * - tests
       - | |github-actions| |requires|
         | |codecov|
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
         | |commits-since|
-.. |docs| image:: https://readthedocs.org/projects/python-proto-topy/badge/?style=flat
-    :target: https://python-proto-topy.readthedocs.io/
-    :alt: Documentation Status
 
-.. |github-actions| image:: https://github.com/decitre/python-proto-topy/actions/workflows/github-actions.yml/badge.svg
+.. |github-actions| image:: https://github.com/decitre/python-proto-topy/actions/workflows/build.yml/badge.svg
     :alt: GitHub Actions Build Status
     :target: https://github.com/decitre/python-proto-topy/actions
 
