@@ -139,7 +139,7 @@ def test_encode_message():
 
 
 def test_decode_message():
-    proto = ProtoModule(file_path=Path(f"test9.proto"),
+    proto = ProtoModule(file_path=Path("test9.proto"),
                         source='syntax = "proto3"; message Test9 { int32 foo = 1; };').compiled(protoc_path)
     aTest9 = proto.py.Test9()
     aTest9.ParseFromString(array('B', [8, 124]))
