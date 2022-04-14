@@ -35,6 +35,11 @@ class ProtoModule:
         self.py = importlib.util.module_from_spec(spec)
         exec(compiled_content, self.py.__dict__)
 
+    def compiled(self, compiler_path: Path) -> "ProtoModule":
+        collection = ProtoCollection(compiler_path, self)
+        collection.compile()
+        return self
+
 
 class NoCompiler(Exception):
     pass
@@ -66,9 +71,11 @@ class ProtoCollection:
             self.add_proto(proto)
 
     def add_proto(self, proto: ProtoModule):
+        if proto.file_path in self.modules:
+            raise KeyError(f"{proto.file_path} already added")
         self.modules[proto.file_path] = proto
 
-    def compile(self, global_scope: dict = None) -> None:
+    def compile(self, global_scope: dict = None) -> "ProtoCollection":
         with TemporaryDirectory() as dir:
             protos_target_paths = {Path(dir, proto.file_path): proto for proto in self.modules.values()}
             proto_source_files = [str(file_path) for file_path in protos_target_paths.keys()]
@@ -90,6 +97,7 @@ class ProtoCollection:
                 with open(Path(dir, proto.package_path, f"{proto.name}_pb2.py")) as module_path:
                     proto.set_module(module_path.read(), global_scope=global_scope)
             sys.path.pop()
+        return self
 
     @staticmethod
     def _do_compile(compiler_path: Path, compile_to_py_options: list, proto_source_files: list) -> None:
