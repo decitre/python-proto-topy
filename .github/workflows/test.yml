@@ -105,7 +105,6 @@ jobs:
     - name: install dependencies
       run: |
         python -mpip install --progress-bar=off -r ci/requirements.txt
-        python -mpip install --progress-bar=off -r ci/requirements_test.txt
         virtualenv --version
         pip --version
         tox --version
