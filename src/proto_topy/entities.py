@@ -199,21 +199,20 @@ class DelimitedMessageFactory:
                 buf = buf[msg_len:]
             buf.extend(self.stream.read(10 - len(buf)))
 
-    def message_read(self, message_type: ClassVar=None) -> Generator[Message, None, None]:
+    def message_read(self, message_type: ClassVar = None) -> Generator[Message, None, None]:
         buf = bytearray(self.stream.read(10))
         message_type = message_type or self.message_type
         while buf:
+            message = message_type()
             msg_len, new_pos = _DecodeVarint32(buf, 0)
             buf = buf[new_pos:]
             remaining_len = msg_len - len(buf)
-            message = message_type()
             if remaining_len < 0:
                 message.ParseFromString(buf[:remaining_len])
-                yield message
                 buf = buf[remaining_len:]
             else:
                 buf.extend(self.stream.read(remaining_len))
                 message.ParseFromString(buf)
-                yield message
                 buf = buf[msg_len:]
+            yield message
             buf.extend(self.stream.read(10 - len(buf)))
