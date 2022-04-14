@@ -1,14 +1,22 @@
-from collections import namedtuple
-from distutils.spawn import find_executable
+from google.protobuf.descriptor_pb2 import FileDescriptorSet
+from google.protobuf.message_factory import GetMessages
+from google.protobuf.internal.encoder import _VarintBytes
+from google.protobuf.internal.decoder import _DecodeVarint32
+from google.protobuf.message import Message
+
 import os
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from subprocess import PIPE, STDOUT, check_output, Popen
 import importlib.util
 import sys
 import types
-from typing import Dict
-from logging import getLogger, basicConfig, DEBUG
+from distutils.spawn import find_executable
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from subprocess import PIPE, Popen
+from io import BytesIO
+from typing import Dict, ClassVar
+from logging import getLogger
+
+
 logger = getLogger(Path(__file__).name)
 
 
@@ -53,11 +61,15 @@ class ProtoCollection:
     compiler_path: Path
     modules: Dict[Path, ProtoModule]
     descriptor_data: bytes
+    descriptor_set: FileDescriptorSet
+    messages: dict
 
     def __init__(self, compiler_path: Path, *protos: ProtoModule):
         self.modules = {}
         self.compiler_path = compiler_path
         self.descriptor_data = None
+        self.descriptor_set = None
+        self.messages = {}
 
         if not self.compiler_path:
             if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
@@ -89,6 +101,8 @@ class ProtoCollection:
             ProtoCollection._do_compile(self.compiler_path, compile_to_py_options, proto_source_files)
             with open(str(artifact_fds_path), mode="rb") as f:
                 self.descriptor_data = f.read()
+            self.descriptor_set = FileDescriptorSet.FromString(self.descriptor_data)
+            self.messages = GetMessages([file for file in self.descriptor_set.file])
 
             self._add_init_files(dir)
 
@@ -138,3 +152,33 @@ class ProtoCollection:
             Path(target_file_path.parent).mkdir(parents=True, exist_ok=True)
             with open(str(target_file_path), "wt") as o:
                 o.write(proto.source)
+
+
+class DelimitedMessage:
+    def __init__(self, stream: BytesIO, *messages: Message):
+        self.stream = stream
+        if messages:
+            self.write(*messages)
+
+    def write(self, *messages: Message):
+        for message in messages:
+            self.stream.write(_VarintBytes(message.ByteSize()))
+            self.stream.write(message.SerializeToString())
+
+    def read(self, message_type: ClassVar):
+        buf = bytearray(self.stream.read(10))
+        while buf:
+            msg_len, new_pos = _DecodeVarint32(buf, 0)
+            buf = buf[new_pos:]
+            remaining_len = msg_len - len(buf)
+            message = message_type()
+            if remaining_len < 0:
+                message.ParseFromString(buf[:remaining_len])
+                yield message
+                buf = buf[remaining_len:]
+            else:
+                buf.extend(self.stream.read(remaining_len))
+                message.ParseFromString(buf)
+                yield message
+                buf = buf[msg_len:]
+            buf.extend(self.stream.read(10 - len(buf)))

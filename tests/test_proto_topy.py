@@ -1,10 +1,12 @@
-from proto_topy.entities import ProtoCollection, ProtoModule, CompilationFailed
+from proto_topy.entities import ProtoCollection, ProtoModule, CompilationFailed, DelimitedMessage
 import pytest
 import os
 import sys
 from pathlib import Path
 from distutils.spawn import find_executable
 from array import array
+from io import BytesIO
+
 
 protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
 
@@ -144,3 +146,11 @@ def test_decode_message():
     aTest9 = proto.py.Test9()
     aTest9.ParseFromString(array('B', [8, 124]))
     assert aTest9.foo == 124
+
+
+def test_decode_messages_stream():
+    proto = ProtoModule(file_path=Path("test10.proto"),
+                        source='syntax = "proto3"; message Test10 { int32 foo = 1; };').compiled(protoc_path)
+    message = DelimitedMessage(BytesIO(), *(proto.py.Test10(foo=foo) for foo in [1, 12]))
+    message.stream.seek(0)
+    assert [thing.foo for thing in message.read(proto.py.Test10)] == [1, 12]
