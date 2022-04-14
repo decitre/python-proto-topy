@@ -14,7 +14,7 @@ Overview
       - | |version| |wheel| |supported-versions| |supported-implementations|
         | |commits-since|
 
-.. |github-actions| image:: https://github.com/decitre/python-proto-topy/actions/workflows/build.yml/badge.svg
+.. |github-actions| image:: https://github.com/decitre/python-proto-topy/actions/workflows/test.yml/badge.svg
     :alt: GitHub Actions Build Status
     :target: https://github.com/decitre/python-proto-topy/actions
 
