@@ -47,8 +47,9 @@ def get_requirements(file_path: str, no_precise_version: bool = False) -> List[s
 
 
 def read(*names, **kwargs):
-    with io.open(join(dirname(__file__), *names),
-                 encoding=kwargs.get('encoding', 'utf8')) as fh:
+    with io.open(
+        join(dirname(__file__), *names), encoding=kwargs.get('encoding', 'utf8')
+    ) as fh:
         return fh.read()
 
 
@@ -71,7 +72,9 @@ if __name__ == '__main__':
         version=version,
         license='MIT',
         description='Yet another tool that compiles .proto strings and import the outcome Python modules.',
-        long_description=re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
+        long_description=re.compile(
+            '^.. start-badges.*^.. end-badges', re.M | re.S
+        ).sub('', read('README.rst')),
         author='Emmanuel Decitre',
         url=f'{github_home}/python-{project_name}',
         packages=_packages,
@@ -97,7 +100,5 @@ if __name__ == '__main__':
         keywords=['protobuf'],
         python_requires='>=3.7',
         install_requires=requirements,
-        extras_require={
-            "dev": requirements_test
-        },
+        extras_require={"dev": requirements_test},
     )

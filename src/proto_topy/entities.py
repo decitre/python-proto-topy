@@ -14,7 +14,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from subprocess import PIPE, Popen
 from io import BytesIO
-from typing import Dict, ClassVar, Union, Generator
+from typing import Dict, ClassVar, Union, Generator, Tuple
 from logging import getLogger
 
 
@@ -22,8 +22,10 @@ logger = getLogger(Path(__file__).name)
 
 
 if api_implementation._default_implementation_type != "cpp":
-    logger.warning("You are using a protobuf module without the C++ implementation. "
-                   "Protobuf operations will be significantly slower.")
+    logger.warning(
+        "You are using a protobuf module without the C++ implementation. "
+        "Protobuf operations will be significantly slower."
+    )
 
 
 class ProtoModule:
@@ -95,16 +97,34 @@ class ProtoCollection:
 
     def compile(self, global_scope: dict = None) -> "ProtoCollection":
         with TemporaryDirectory() as dir:
-            protos_target_paths = {Path(dir, proto.file_path): proto for proto in self.modules.values()}
-            proto_source_files = [str(file_path) for file_path in protos_target_paths.keys()]
+            protos_target_paths = {
+                Path(dir, proto.file_path): proto for proto in self.modules.values()
+            }
+            proto_source_files = [
+                str(file_path) for file_path in protos_target_paths.keys()
+            ]
             ProtoCollection.marshal(protos_target_paths)
 
             compile_to_py_options = [f"--proto_path={dir}", f"--python_out={dir}"]
-            ProtoCollection._do_compile(self.compiler_path, compile_to_py_options, proto_source_files)
+            ProtoCollection._do_compile(
+                self.compiler_path,
+                compile_to_py_options,
+                proto_source_files,
+                raise_exception=True,
+            )
 
             artifact_fds_path = Path(dir, "artifacts.fds")
-            compile_to_py_options = ["--include_imports", f"--proto_path={dir}", f"--descriptor_set_out={artifact_fds_path}"]
-            ProtoCollection._do_compile(self.compiler_path, compile_to_py_options, proto_source_files)
+            compile_to_py_options = [
+                "--include_imports",
+                f"--proto_path={dir}",
+                f"--descriptor_set_out={artifact_fds_path}",
+            ]
+            ProtoCollection._do_compile(
+                self.compiler_path,
+                compile_to_py_options,
+                proto_source_files,
+                raise_exception=False,
+            )
             with open(str(artifact_fds_path), mode="rb") as f:
                 self.descriptor_data = f.read()
             self.descriptor_set = FileDescriptorSet.FromString(self.descriptor_data)
@@ -114,20 +134,28 @@ class ProtoCollection:
 
             sys.path.append(dir)
             for proto in self.modules.values():
-                with open(Path(dir, proto.package_path, f"{proto.name}_pb2.py")) as module_path:
+                with open(
+                    Path(dir, proto.package_path, f"{proto.name}_pb2.py")
+                ) as module_path:
                     proto.set_module(module_path.read(), global_scope=global_scope)
             sys.path.pop()
         return self
 
     @staticmethod
-    def _do_compile(compiler_path: Path, compile_to_py_options: list, proto_source_files: list) -> None:
+    def _do_compile(
+        compiler_path: Path,
+        compile_to_py_options: list,
+        proto_source_files: list,
+        raise_exception: bool = True,
+    ) -> None:
         compile_command = [str(compiler_path.resolve())]
         compile_command.extend(compile_to_py_options)
         compile_command.extend(proto_source_files)
         compilation = Popen(compile_command, stdout=PIPE, stderr=PIPE)
         compilation.wait()
         outs, errs = compilation.communicate()
-        ProtoCollection._raise_for_errs(errs)
+        if raise_exception:
+            ProtoCollection._raise_for_errs(errs)
 
     @staticmethod
     def _raise_for_errs(errs: bytes) -> None:
@@ -161,9 +189,12 @@ class ProtoCollection:
 
 
 class DelimitedMessageFactory:
-    def __init__(self, stream: BytesIO, *messages: Message, message_type: ClassVar = None):
+    def __init__(
+        self, stream: BytesIO, *messages: Message, message_type: ClassVar = None
+    ):
         self.stream = stream
         self.message_type = message_type
+        self.offset = 0
         if message_type is None:
             self.read = self.bytes_read
         else:
@@ -171,7 +202,9 @@ class DelimitedMessageFactory:
         if messages:
             self.write(*messages)
 
-    def read(self) -> Union[Generator[Message, None, None], Generator[bytearray, None, None]]:
+    def read(
+        self,
+    ) -> Union[Generator[Tuple[int, Message], None, None], Generator[Tuple[int, bytearray], None, None]]:
         raise NotImplementedError()
 
     def write(self, *messages: Message):
@@ -179,40 +212,56 @@ class DelimitedMessageFactory:
             if self.message_type is None:
                 self.message_type = type(message)
             if not isinstance(message, self.message_type):
-                raise TypeError(f"Inconsistent type: {message.__class__.__name__} "
-                                f"<> {self.message_type.__class__.__name__}")
+                raise TypeError(
+                    f"Inconsistent type: {message.__class__.__name__} "
+                    f"<> {self.message_type.__class__.__name__}"
+                )
             self.stream.write(_VarintBytes(message.ByteSize()))
             self.stream.write(message.SerializeToString())
 
-    def bytes_read(self) -> Generator[bytearray, None, None]:
+    def bytes_read(self) -> Generator[Tuple[int, bytearray], None, None]:
+        """
+        :return: tuple of message offset and message bytes
+        """
         buf = bytearray(self.stream.read(10))
         while buf:
             msg_len, new_pos = _DecodeVarint32(buf, 0)
+            self.offset += new_pos
             buf = buf[new_pos:]
             remaining_len = msg_len - len(buf)
             if remaining_len < 0:
-                yield buf[:remaining_len].copy()
+                yield self.offset, buf[:remaining_len].copy()
                 buf = buf[remaining_len:]
+                self.offset += remaining_len
             else:
                 buf.extend(self.stream.read(remaining_len))
-                yield buf.copy()
+                yield self.offset, buf.copy()
                 buf = buf[msg_len:]
+                self.offset += msg_len
             buf.extend(self.stream.read(10 - len(buf)))
 
-    def message_read(self, message_type: ClassVar = None) -> Generator[Message, None, None]:
+    def message_read(
+        self, message_type: ClassVar = None
+    ) -> Generator[Tuple[int, Message], None, None]:
+        """
+        :return: tuple of message offset and decoded bytes
+        """
         buf = bytearray(self.stream.read(10))
         message_type = message_type or self.message_type
         while buf:
             message = message_type()
             msg_len, new_pos = _DecodeVarint32(buf, 0)
+            self.offset += new_pos
             buf = buf[new_pos:]
             remaining_len = msg_len - len(buf)
             if remaining_len < 0:
                 message.ParseFromString(buf[:remaining_len])
                 buf = buf[remaining_len:]
+                self.offset += remaining_len
             else:
                 buf.extend(self.stream.read(remaining_len))
                 message.ParseFromString(buf)
                 buf = buf[msg_len:]
-            yield message
+                self.offset += msg_len
+            yield self.offset, message
             buf.extend(self.stream.read(10 - len(buf)))
