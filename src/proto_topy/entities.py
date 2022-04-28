@@ -13,8 +13,7 @@ from distutils.spawn import find_executable
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from subprocess import PIPE, Popen
-from io import BytesIO
-from typing import Dict, ClassVar, Union, Generator, Tuple
+from typing import Dict, ClassVar, Union, Generator, Tuple, BinaryIO
 from logging import getLogger
 
 
@@ -190,7 +189,7 @@ class ProtoCollection:
 
 class DelimitedMessageFactory:
     def __init__(
-        self, stream: BytesIO, *messages: Message, message_type: ClassVar = None
+        self, stream: BinaryIO, *messages: Message, message_type: ClassVar = None
     ):
         self.stream = stream
         self.message_type = message_type
