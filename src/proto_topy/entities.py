@@ -3,7 +3,6 @@ from google.protobuf.message_factory import GetMessages
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint32
 from google.protobuf.message import Message
-from google.protobuf.internal import api_implementation
 
 import os
 import importlib.util
@@ -18,13 +17,6 @@ from logging import getLogger
 
 
 logger = getLogger(Path(__file__).name)
-
-
-if api_implementation.Type() not in ("cpp", "upb"):
-    logger.warning(
-        "You are using a protobuf module without the C/C++ implementation. "
-        "Protobuf operations will be significantly slower."
-    )
 
 
 class ProtoModule:
@@ -218,7 +210,7 @@ class DelimitedMessageFactory:
             self.stream.write(_VarintBytes(message.ByteSize()))
             self.stream.write(message.SerializeToString())
 
-    def bytes_read(self) -> Generator[Tuple[int, bytearray], None, None]:
+    def bytes_read(self) -> Generator[Tuple[int, bytes], None, None]:
         """
         :return: tuple of message offset and message bytes
         """
@@ -229,12 +221,12 @@ class DelimitedMessageFactory:
             buf = buf[new_pos:]
             remaining_len = msg_len - len(buf)
             if remaining_len < 0:
-                yield self.offset, buf[:remaining_len].copy()
+                yield self.offset, bytes(buf[:remaining_len])
                 buf = buf[remaining_len:]
                 self.offset += remaining_len
             else:
                 buf.extend(self.stream.read(remaining_len))
-                yield self.offset, buf.copy()
+                yield self.offset, bytes(buf)
                 buf = buf[msg_len:]
                 self.offset += msg_len
             buf.extend(self.stream.read(10 - len(buf)))
@@ -254,12 +246,12 @@ class DelimitedMessageFactory:
             buf = buf[new_pos:]
             remaining_len = msg_len - len(buf)
             if remaining_len < 0:
-                message.ParseFromString(buf[:remaining_len])
+                message.ParseFromString(bytes(buf[:remaining_len]))
                 buf = buf[remaining_len:]
                 self.offset += remaining_len
             else:
                 buf.extend(self.stream.read(remaining_len))
-                message.ParseFromString(buf)
+                message.ParseFromString(bytes(buf))
                 buf = buf[msg_len:]
                 self.offset += msg_len
             yield self.offset, message

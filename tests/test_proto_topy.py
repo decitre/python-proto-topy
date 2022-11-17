@@ -186,7 +186,7 @@ def test_decode_message():
         source='syntax = "proto3"; message Test9 { int32 foo = 1; };',
     ).compiled(protoc_path)
     aTest9 = proto.py.Test9()
-    aTest9.ParseFromString(array('B', [8, 124]))
+    aTest9.ParseFromString(bytes(array('B', [8, 124])))
     assert aTest9.foo == 124
 
 
