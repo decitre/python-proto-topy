@@ -2,7 +2,6 @@
 # -*- encoding: utf-8 -*-
 
 import io
-import re
 from glob import glob
 from os.path import basename, dirname, join, splitext
 from typing import Set, Any, List, Dict
@@ -10,6 +9,11 @@ from typing import Set, Any, List, Dict
 from setuptools import find_packages
 from setuptools import setup
 from pathlib import Path
+
+
+project_name = "proto-topy"
+main_package_name = "proto_topy"
+github_home = "https://github.com/decitre"
 
 
 def get_property(prop, packages_path: str, packages: List[str]) -> Set[Any]:
@@ -53,10 +57,9 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-project_name = "proto-topy"
-main_package_name = "proto_topy"
-github_home = "https://github.com/decitre"
-
+here = Path(__file__).parent
+with open(Path(here, "README.md"), encoding='utf-8') as f:
+    long_description = f.read()
 
 if __name__ == '__main__':
 
@@ -72,9 +75,7 @@ if __name__ == '__main__':
         version=version,
         license='MIT',
         description='Yet another tool that compiles .proto strings and import the outcome Python modules.',
-        long_description=re.compile(
-            '^.. start-badges.*^.. end-badges', re.M | re.S
-        ).sub('', read('README.rst')),
+        long_description=long_description,
         author='Emmanuel Decitre',
         url=f'{github_home}/python-{project_name}',
         packages=_packages,

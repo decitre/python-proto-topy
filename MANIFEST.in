@@ -8,7 +8,7 @@ include tox.ini
 include .github/workflows/github-actions.yml
 include .pre-commit-config.yaml
 include LICENSE
-include README.rst
+include README.md
 include requirements.txt
 include requirements_test.txt
 
