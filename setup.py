@@ -76,6 +76,7 @@ if __name__ == '__main__':
         license='MIT',
         description='Yet another tool that compiles .proto strings and import the outcome Python modules.',
         long_description=long_description,
+        long_description_content_type='text/markdown',
         author='Emmanuel Decitre',
         url=f'{github_home}/python-{project_name}',
         packages=_packages,
