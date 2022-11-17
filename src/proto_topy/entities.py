@@ -20,9 +20,9 @@ from logging import getLogger
 logger = getLogger(Path(__file__).name)
 
 
-if api_implementation._default_implementation_type != "cpp":
+if api_implementation.Type() not in ("cpp", "upb"):
     logger.warning(
-        "You are using a protobuf module without the C++ implementation. "
+        "You are using a protobuf module without the C/C++ implementation. "
         "Protobuf operations will be significantly slower."
     )
 
