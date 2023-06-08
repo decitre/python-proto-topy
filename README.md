@@ -1,10 +1,14 @@
-Yet another tool that compiles .proto strings and import the outcome Python modules.
-
 [![test][test_badge]][test_target]
 [![version][version_badge]][pypi]
 [![wheel][wheel_badge]][pypi]
 [![python version][python_versions_badge]][pypi]
 [![python implementation][python_implementation_badge]][pypi]
+
+A tool that 
+- takes a `str` containing protobuf messages definitions 
+- returns a `types.ModuleType` instance
+
+It is useful for Python programs needing to parse protobuf messages without having to host `.proto` files in their code base.
 
 
 ## Installation

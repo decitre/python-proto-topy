@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v3
@@ -25,8 +25,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Protoc
-      uses: arduino/setup-protoc@v1
+      uses: arduino/setup-protoc@v2
       with:
+        version: '23.2'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install dependencies
       run: |

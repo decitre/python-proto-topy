@@ -16,28 +16,48 @@ from io import BytesIO
 protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
 
 
+def test_compiler_version():
+    version = ProtoCollection(compiler_path=protoc_path).version()
+    assert version is not None and tuple(map(int, version.split("."))) > (3, 0, 0)
+
+
+def unlink_proto(path_str: str) -> Path:
+    proto = Path(path_str)
+    if proto.exists():
+        proto.unlink()
+    return proto
+
 def test_add_proto():
-    proto = ProtoModule(file_path=Path("test1.proto"), source="")
+    test1_proto = unlink_proto("test1.proto")
+    proto = ProtoModule(file_path=test1_proto, source="")
     modules = ProtoCollection(compiler_path=protoc_path)
     modules.add_proto(proto)
-    assert Path("test1.proto") in modules.modules
+    assert test1_proto in modules.modules
+    unlink_proto("test1.proto")
 
 
 def test_add_proto2():
+    test2_proto = unlink_proto("test2.proto")
+    test3_proto = unlink_proto("test3.proto")
+
     modules = ProtoCollection(
         protoc_path,
         *(
-            ProtoModule(file_path=Path("test2.proto"), source=""),
-            ProtoModule(file_path=Path("test3.proto"), source=""),
+            ProtoModule(file_path=test2_proto, source=""),
+            ProtoModule(file_path=test3_proto, source=""),
         ),
     )
-    assert Path("test2.proto") in modules.modules
-    assert Path("test3.proto") in modules.modules
+    assert test2_proto in modules.modules
+    assert test3_proto in modules.modules
+    unlink_proto("test2.proto")
+    unlink_proto("test3.proto")
 
 
 def test_bad_protoc():
+    dummy = unlink_proto("dummy")
     with pytest.raises(FileNotFoundError):
-        ProtoCollection(Path('dummy')).compile()
+        ProtoCollection(dummy).compile()
+    unlink_proto("dummy")
 
 
 def test_no_protoc():
@@ -46,23 +66,26 @@ def test_no_protoc():
 
 
 def test_compile_invalid_source():
+    test4_proto = unlink_proto("test4.proto")
     with pytest.raises(CompilationFailed):
-        ProtoModule(file_path=Path("test4.proto"), source="").compiled(protoc_path)
-
+        ProtoModule(file_path=test4_proto, source="foo").compiled(protoc_path)
+    unlink_proto("test4.proto")
 
 def test_compile_redundant_proto():
+    testr_proto = unlink_proto("testr.proto")
     proto_source = 'syntax = "proto3"; message TestR { int32 foo = 1; };'
-    proto1 = ProtoModule(file_path=Path("testr.proto"), source=proto_source)
-    proto2 = ProtoModule(file_path=Path("testr.proto"), source=proto_source)
+    proto1 = ProtoModule(file_path=testr_proto, source=proto_source)
+    proto2 = ProtoModule(file_path=testr_proto, source=proto_source)
     with pytest.raises(KeyError, match=r"testr.proto already added"):
         ProtoCollection(protoc_path, proto1, proto2).compile()
-
+    unlink_proto("testr.proto")
 
 def test_compile_minimal_proto():
     from google.protobuf.timestamp_pb2 import Timestamp
 
+    test5_proto = unlink_proto("test5.proto")
     proto = ProtoModule(
-        file_path=Path("test5.proto"),
+        file_path=test5_proto,
         source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
@@ -75,13 +98,15 @@ def test_compile_minimal_proto():
     atest5 = proto.py.Test5()
     assert isinstance(atest5.created, Timestamp)
     del sys.modules["test5"]
+    unlink_proto("test5.proto")
 
 
 def test_compile_minimal_proto_in_a_package():
     from google.protobuf.timestamp_pb2 import Timestamp
 
+    thing_proto = unlink_proto("p1/p2/p3/thing.proto")
     proto = ProtoModule(
-        file_path=Path("p1/p2/p3/thing.proto"),
+        file_path=thing_proto,
         source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
@@ -100,26 +125,33 @@ def test_compile_minimal_proto_in_a_package():
     sys.modules["thing"] = proto.py
     athing = proto.py.Thing()
     assert isinstance(athing.created, Timestamp)
+    unlink_proto("p1/p2/p3/thing.proto")
 
 
 def test_compile_missing_dependency():
+    test_proto = unlink_proto("test.proto")
     with pytest.raises(CompilationFailed, match=r'other.proto: File not found.*'):
         ProtoModule(
-            file_path=Path("test.proto"),
+            file_path=test_proto,
             source='syntax = "proto3"; import "other.proto";',
         ).compiled(protoc_path)
+    unlink_proto("test.proto")
 
 
 def test_compile_ununsed_dependency():
-    proto = ProtoModule(
-        file_path=Path("test.proto"),
+    test_proto = unlink_proto("test.proto")
+    #test_proto.touch()
+    proto_module = ProtoModule(
+        file_path=test_proto,
         source="""
     syntax = "proto3";
     import "other.proto";
     """,
     )
-    other_proto = ProtoModule(
-        file_path=Path("other.proto"),
+
+    other_proto = unlink_proto("other.proto")
+    other_proto_module = ProtoModule(
+        file_path=other_proto,
         source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
@@ -128,18 +160,21 @@ def test_compile_ununsed_dependency():
     }
     """,
     )
-    modules = ProtoCollection(protoc_path, proto, other_proto)
+    modules = ProtoCollection(protoc_path, proto_module, other_proto_module)
     try:
         modules.compile()
     except CompilationFailed:
         pytest.fail("Unexpected CompilationFailed ..")
+    unlink_proto("test.proto")
+    unlink_proto("other.proto")
 
 
 def test_compile_simple_dependency():
     from google.protobuf.timestamp_pb2 import Timestamp
 
-    proto = ProtoModule(
-        file_path=Path("p3/p4/test6.proto"),
+    test_proto = unlink_proto("p3/p4/test6.proto")
+    proto_module = ProtoModule(
+        file_path=test_proto,
         source="""
     syntax = "proto3";
     import "p1/p2/other2.proto";
@@ -148,8 +183,10 @@ def test_compile_simple_dependency():
     };
     """,
     )
-    other_proto = ProtoModule(
-        file_path=Path("p1/p2/other2.proto"),
+
+    other_proto = unlink_proto("p1/p2/other2.proto")
+    other_proto_module = ProtoModule(
+        file_path=other_proto,
         source="""
     syntax = "proto3";
     import "google/protobuf/timestamp.proto";
@@ -158,19 +195,24 @@ def test_compile_simple_dependency():
     }
     """,
     )
-    modules = ProtoCollection(protoc_path, proto, other_proto)
+    modules = ProtoCollection(protoc_path, proto_module, other_proto_module)
     modules.compile()
     sys.modules.update({proto.name: proto.py for proto in modules.modules.values()})
-    atest6 = modules.modules[Path("p3/p4/test6.proto")].py.Test6()
+    atest6 = modules.modules[test_proto].py.Test6()
     assert isinstance(atest6.foo.created, Timestamp)
-    for proto in modules.modules.values():
-        del sys.modules[proto.name]
-
+    for proto_module in modules.modules.values():
+        del sys.modules[proto_module.name]
+    unlink_proto("p3/p4/test6.proto")
+    unlink_proto("p1/p2/other2.proto")
 
 def test_encode_message():
     proto_source = 'syntax = "proto3"; message Test{n} {{ int32 foo = 1; }};'
-    proto1 = ProtoModule(file_path=Path("test7.proto"), source=proto_source.format(n=7))
-    proto2 = ProtoModule(file_path=Path("test8.proto"), source=proto_source.format(n=8))
+    test7_proto = unlink_proto("test7.proto")
+    test8_proto = unlink_proto("test8.proto")
+
+    proto1 = ProtoModule(file_path=test7_proto, source=proto_source.format(n=7))
+    proto2 = ProtoModule(file_path=test8_proto, source=proto_source.format(n=8))
+
     ProtoCollection(protoc_path, proto1, proto2).compile()
     assert array('B', proto1.py.Test7(foo=124).SerializeToString()) == array(
         'B', [8, 124]
@@ -178,21 +220,26 @@ def test_encode_message():
     assert array('B', proto2.py.Test8(foo=123).SerializeToString()) == array(
         'B', [8, 123]
     )
+    unlink_proto("test7.proto")
+    unlink_proto("test8.proto")
 
 
 def test_decode_message():
+    test9_proto = unlink_proto("test9.proto")
     proto = ProtoModule(
-        file_path=Path("test9.proto"),
+        file_path=test9_proto,
         source='syntax = "proto3"; message Test9 { int32 foo = 1; };',
     ).compiled(protoc_path)
     aTest9 = proto.py.Test9()
     aTest9.ParseFromString(bytes(array('B', [8, 124])))
     assert aTest9.foo == 124
+    unlink_proto("test9.proto")
 
 
 def test_decode_messages_stream():
+    test10_proto = unlink_proto("test10.proto")
     proto = ProtoModule(
-        file_path=Path("test10.proto"),
+        file_path=test10_proto,
         source='syntax = "proto3"; message Test10 { int32 foo = 1; };',
     ).compiled(protoc_path)
     factory = DelimitedMessageFactory(
@@ -200,22 +247,25 @@ def test_decode_messages_stream():
     )
     factory.stream.seek(0)
     assert [thing.foo for _, thing in factory.message_read(proto.py.Test10)] == [1, 12]
+    unlink_proto("test10.proto")
 
 
 def test_decode_messages_stream2():
+    test11_proto = unlink_proto("test11.proto")
     proto = ProtoModule(
-        file_path=Path("test10.proto"),
-        source='syntax = "proto3"; message Test10 { int32 foo = 1; };',
+        file_path=test11_proto,
+        source='syntax = "proto3"; message Test11 { int32 foo = 1; };',
     ).compiled(protoc_path)
     message = DelimitedMessageFactory(
-        BytesIO(), *(proto.py.Test10(foo=foo) for foo in [1, 12])
+        BytesIO(), *(proto.py.Test11(foo=foo) for foo in [1, 12])
     )
 
     for fn in message.read, message.bytes_read:
         message.stream.seek(0)
         foos = []
         for offset, data in fn():
-            aTest10 = proto.py.Test10()
-            aTest10.ParseFromString(data)
-            foos.append(aTest10.foo)
+            aTest11 = proto.py.Test11()
+            aTest11.ParseFromString(data)
+            foos.append(aTest11.foo)
         assert foos == [1, 12]
+    unlink_proto("test11.proto")
