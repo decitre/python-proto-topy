@@ -103,16 +103,21 @@ def test_compile_minimal_proto_in_a_package():
 
 
 def test_compile_missing_dependency():
+    test_proto = Path("test.proto")
+    test_proto.touch()
     with pytest.raises(CompilationFailed, match=r'other.proto: File not found.*'):
         ProtoModule(
-            file_path=Path("test.proto"),
+            file_path=test_proto,
             source='syntax = "proto3"; import "other.proto";',
         ).compiled(protoc_path)
+    test_proto.unlink()
 
 
 def test_compile_ununsed_dependency():
+    test_proto = Path("test.proto")
+    test_proto.touch()
     proto = ProtoModule(
-        file_path=Path("test.proto"),
+        file_path=test_proto,
         source="""
     syntax = "proto3";
     import "other.proto";
@@ -133,6 +138,7 @@ def test_compile_ununsed_dependency():
         modules.compile()
     except CompilationFailed:
         pytest.fail("Unexpected CompilationFailed ..")
+    test_proto.unlink()
 
 
 def test_compile_simple_dependency():
