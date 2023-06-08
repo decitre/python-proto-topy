@@ -15,6 +15,12 @@ from io import BytesIO
 
 protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
 
+
+def test_compiler_version():
+    version = ProtoCollection(compiler_path=protoc_path).version()
+    assert version is not None and version > "3.0.0"
+
+
 def unlink_proto(path_str: str) -> Path:
     proto = Path(path_str)
     if proto.exists():
@@ -62,7 +68,7 @@ def test_no_protoc():
 def test_compile_invalid_source():
     test4_proto = unlink_proto("test4.proto")
     with pytest.raises(CompilationFailed):
-        ProtoModule(file_path=test4_proto, source="").compiled(protoc_path)
+        ProtoModule(file_path=test4_proto, source="foo").compiled(protoc_path)
     unlink_proto("test4.proto")
 
 def test_compile_redundant_proto():

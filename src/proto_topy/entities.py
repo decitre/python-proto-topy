@@ -132,13 +132,26 @@ class ProtoCollection:
             sys.path.pop()
         return self
 
+
+    def version(self) -> str:
+        outs = ProtoCollection._do_compile(
+            self.compiler_path,
+            ["--version"],
+            [],
+            raise_exception=True,
+        )
+        if outs:
+            return outs.split()[-1].decode()
+
+
     @staticmethod
     def _do_compile(
         compiler_path: Path,
         compile_to_py_options: list,
         proto_source_files: list,
         raise_exception: bool = True,
-    ) -> None:
+    ) -> bytes:
+
         compile_command = [str(compiler_path.resolve())]
         compile_command.extend(compile_to_py_options)
         compile_command.extend(proto_source_files)
@@ -147,6 +160,7 @@ class ProtoCollection:
         outs, errs = compilation.communicate()
         if raise_exception:
             ProtoCollection._raise_for_errs(errs)
+        return outs
 
     @staticmethod
     def _raise_for_errs(errs: bytes) -> None:
