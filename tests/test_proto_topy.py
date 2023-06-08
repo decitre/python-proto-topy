@@ -18,7 +18,7 @@ protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
 
 def test_compiler_version():
     version = ProtoCollection(compiler_path=protoc_path).version()
-    assert version is not None and version > "3.0.0"
+    assert version is not None and tuple(map(int, version.split("."))) > (3, 0, 0)
 
 
 def unlink_proto(path_str: str) -> Path:
