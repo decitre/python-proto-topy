@@ -13,9 +13,7 @@ jobs:
         # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
         os: [ubuntu-latest, macos-latest, windows-latest]
         python: [3.8, 3.9, 3.10, 3.11]
-        protoc: [ {tool: arduino/setup-protoc@v1, ver: 3.20.3},
-                  {tool: arduino/setup-protoc@v2, ver: 23.x},
-                  {tool: arduino/setup-protoc@v2, ver: 21.12} ]
+        protoc: [3.20.3]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -26,13 +24,13 @@ jobs:
       # https://github.com/actions/setup-python
       with:
         python-version: ${{ matrix.python }}
-        architecture: 'x64'
-        cache: 'pip'
+        architecture: x64
+        cache: pip
     - name: Install Protoc
-      uses: ${{ matrix.protoc.tool }}
+      uses: arduino/setup-protoc@v1
       # https://github.com/arduino/setup-protoc
       with:
-        version: ${{ matrix.protoc.ver }}
+        version: ${{ matrix.protoc }}
         repo-token: ${{ secrets.GITHUB_TOKEN }}
     - name: install dependencies
       run: |
@@ -44,6 +42,48 @@ jobs:
         protoc --version
     - name: test
       env:
-        TOXPYTHON: '${{ matrix.python }}'
+        TOXPYTHON: ${{ matrix.python }}
       run: >
         tox -e ${{ matrix.python }} -v
+
+  buildv2:
+    # repetition due to lack of support in `uses:` of context/matrix variables
+    # https://github.com/orgs/community/discussions/9049
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: [3.8, 3.9, 3.10, 3.11]
+        protoc: [21.12, 23.x]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        # https://github.com/actions/setup-python
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: x64
+          cache: pip
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+        # https://github.com/arduino/setup-protoc
+        with:
+          version: ${{ matrix.protoc }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install dependencies
+        run: |
+          python -mpip install --progress-bar=off -r ci/requirements.txt
+          virtualenv --version
+          pip --version
+          tox --version
+          pip list --format=freeze
+          protoc --version
+      - name: test
+        env:
+          TOXPYTHON: ${{ matrix.python }}
+        run: >
+          tox -e ${{ matrix.python }} -v
