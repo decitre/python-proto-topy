@@ -1,10 +1,27 @@
 [build-system]
 requires = [
-    "setuptools>=30.3.0",
+    "setuptools>=42",
     "wheel",
 ]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 88
-target-version = ['py39']
+target-version = ['py310']
 skip-string-normalization = true
+
+[tool.bumpver]
+current_version = "0.0.18"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+]
+"src/proto_topy/__init__.py" = [
+    '^VERSION = {MAJOR}, {MINOR}, {PATCH}$'
+]
