@@ -23,5 +23,5 @@ push = true
     'current_version = "{version}"',
 ]
 "src/proto_topy/__init__.py" = [
-    '^VERSION = {MAJOR}, {MINOR}, {PATCH}$'
+    '^__version__ = "{version}"$'
 ]
