@@ -1,5 +1,6 @@
-pytest
+flake8
 protobuf
-requests
+pytest
 pytest-recording
+requests
 urllib3<2
