@@ -20,11 +20,11 @@ It is useful for Python programs needing to parse protobuf messages without havi
 ```python
 import sys, os
 from pathlib import Path
-from distutils.spawn import find_executable
+from shutil import which
 from proto_topy.entities import ProtoModule
 from google.protobuf.timestamp_pb2 import Timestamp
 
-protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
+protoc_path = Path(which("protoc") or os.environ.get('PROTOC'))
 
 source = """
 

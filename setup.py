@@ -67,7 +67,7 @@ if __name__ == '__main__':
     _packages = find_packages(where=_packages_path)
     version = get_property("__version__", _packages_path, _packages).pop()
     requirements = ["click"]
-    requirements.extend(get_requirements("requirements.txt", no_precise_version=True))
+    requirements.extend(get_requirements("requirements.txt", no_precise_version=False))
     requirements_test = get_requirements("requirements_test.txt")
 
     setup(

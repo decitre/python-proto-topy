@@ -1,2 +1,5 @@
 pytest
 protobuf
+requests
+pytest-recording
+urllib3<2
