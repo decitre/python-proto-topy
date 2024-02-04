@@ -15,9 +15,9 @@ It is useful for Python programs needing to parse protobuf messages without havi
 
     pip install proto-topy
 
-## Google address book
+## Example: address book
 
-Adaptation of the [example](https://github.com/protocolbuffers/protobuf/tree/main/examples):
+Adaptation of the `protocolbuffers` [example](https://github.com/protocolbuffers/protobuf/tree/main/examples):
 
 ```python
 import requests
@@ -28,12 +28,15 @@ from pathlib import Path
 
 # Retrieve protobuf messages definitions
 example_source = requests.get(
-    "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/examples/addressbook.proto").text
+    "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/"
+    "examples/addressbook.proto").text
+
 example_path = Path(
     "protocolbuffers/protobuf/blob/main/examples/addressbook.proto")
 
 # Compile and import
-module = ProtoModule(file_path=example_path, source=example_source).compiled(Path(which("protoc")))
+module = (ProtoModule(file_path=example_path, source=example_source)
+          .compiled(Path(which("protoc"))))
 sys.modules["addressbook"] = module.py
 
 # Produce a serialized address book
