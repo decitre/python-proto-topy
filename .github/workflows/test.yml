@@ -38,12 +38,12 @@ jobs:
     - name: install dependencies
       run: |
         python -mpip install --progress-bar=off -r ci/requirements.txt
-        virtualenv --version
         pip --version
         tox --version
         pip list --format=freeze
         protoc --version
-    - name: test
-      run: >
-        tox -v
+    - name: Setup test suite
+      run: tox -vv --notest
+    - name: Run test suite
+      run: tox --skip-pkg-install
 
