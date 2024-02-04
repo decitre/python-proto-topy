@@ -6,7 +6,7 @@ on:
     - cron: "0 8 * * *"
 
 jobs:
-  old_config:
+  py_39_proto_203:
     strategy:
       fail-fast: false
       matrix:
@@ -23,7 +23,7 @@ jobs:
           architecture: x64
           cache: pip
       - name: Install Protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@v1.1.2
         with:
           version: 3.20.3
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -42,7 +42,7 @@ jobs:
           tox -e check --skip-pkg-install
           tox --skip-pkg-install
 
-  newer:
+  py_31x_proto_252:
     strategy:
       fail-fast: false
       matrix:
@@ -83,7 +83,7 @@ jobs:
           tox -e check --skip-pkg-install
           tox --skip-pkg-install
 
-  latest:
+  py_3x_proto_25x:
     strategy:
       fail-fast: false
       matrix:
