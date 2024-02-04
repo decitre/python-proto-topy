@@ -67,8 +67,8 @@ if __name__ == '__main__':
     _packages = find_packages(where=_packages_path)
     version = get_property("__version__", _packages_path, _packages).pop()
     requirements = ["click"]
-    requirements.extend(get_requirements("requirements.txt", no_precise_version=True))
-    requirements_test = get_requirements("requirements_test.txt")
+    requirements.extend(get_requirements("requirements/build.txt", no_precise_version=False))
+    requirements_dev = get_requirements("requirements/dev.txt")
 
     setup(
         name=project_name,
@@ -93,6 +93,7 @@ if __name__ == '__main__':
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
             'Programming Language :: Python :: Implementation :: CPython',
             "Operating System :: OS Independent",
         ],
@@ -102,5 +103,5 @@ if __name__ == '__main__':
         keywords=['protobuf'],
         python_requires='>=3.8',
         install_requires=requirements,
-        extras_require={"dev": requirements_test},
+        extras_require={"dev": requirements_dev},
     )

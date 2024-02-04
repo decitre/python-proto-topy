@@ -1,0 +1,84 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.31.0
+    method: GET
+    uri: https://raw.githubusercontent.com/protocolbuffers/protobuf/main/examples/addressbook.proto
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAA22UXU/bMBSG7/Mrjno9ko1uN0RcgKg2tEEr6LSLCVVucpqYJrFnHzPQxH/fsZ2k
+        6YZURY3j877P+bCzDO4R4W5xcXWzSNsSdsqA7PjZCpKqA9GVsHWyKXnVknGFX7VpkmX8g1tFeAb3
+        64u7ddi5uL0CEpUFYRCcRR8FhWpb7MgCKShxJzsEi1Fn2OO1yJEyUjQ2BVjX+BI0OkWghSFQO6Ca
+        A186Es+BcmUUqUI1cOl2OzQj01pBhcQ4rHtSoqYafotmT7VRrqqjkLSwkw0GZi9rsBHEJPgsWt2g
+        fceEeObVaiJtz7KsxCdslPY+lVJVgymnleme4WQbGbJSFTYbM0m8ws9YnhKLRphQ1IekT+McZkFh
+        PssTLYq9qHAsQ54kstWKU59Fw2jGRhnJFi0xaRqWONjb+NofmUzMH8WT2Bx9VDq0N3xoXUOS0974
+        mlim4j5jfrRloGNizjvt65QOsBHEzo6DlCM0Gza1thNtCL4oS4PWXiq1Xw0hA/z/kJMMClsLo9/M
+        of/kLSxzBp/PsUervmTpom9sOgGYWL+lPjGv1JvGvDypSyWpdtujsRimYuzcMF9ZpcYp0dsJyL9O
+        EwjOzrKVfUj6f7Bibcb4kwDw0ZRdBX2ZP+S8JDuan4Is+f00B2Ch75385RCur6Bz7RZNOEbhMOig
+        lB6EsBWy4cg5jyEA8n5Y1arD9YvGYAhws7y8/rbgPe/z8P5lebMYvAF+LO++Bmd+e/UaI7SXuY3+
+        UWhgj2ujwsGP/GOqZVBjOK9TMe3/++n9GJj7UzqUPl0PhwZ4HmnjdBkUzuFTnryGOi+dARHHA7Y8
+        H/GK4Oo8OssXEF9b8RKymI4tmIxTyOZAFnujUXG/Y1KvY5cPrfwLfa1h8YAFAAA=
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - max-age=300
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Length:
+      - '674'
+      Content-Security-Policy:
+      - default-src 'none'; style-src 'unsafe-inline'; sandbox
+      Content-Type:
+      - text/plain; charset=utf-8
+      Cross-Origin-Resource-Policy:
+      - cross-origin
+      Date:
+      - Sat, 03 Feb 2024 14:11:23 GMT
+      ETag:
+      - W/"3609494263025aad9f621723990edef51c0d69d5dbaa781f6a5867e4e66b4c94"
+      Expires:
+      - Sat, 03 Feb 2024 14:16:23 GMT
+      Source-Age:
+      - '0'
+      Strict-Transport-Security:
+      - max-age=31536000
+      Vary:
+      - Authorization,Accept-Encoding,Origin
+      Via:
+      - 1.1 varnish
+      X-Cache:
+      - HIT
+      X-Cache-Hits:
+      - '1'
+      X-Content-Type-Options:
+      - nosniff
+      X-Fastly-Request-ID:
+      - ed62ed6bb3831cc99bc14b1b39f32cd2859affe4
+      X-Frame-Options:
+      - deny
+      X-GitHub-Request-Id:
+      - 4716:250E4C:2B13C31:2CCC87B:65BE4834
+      X-Served-By:
+      - cache-fra-eddf8230121-FRA
+      X-Timer:
+      - S1706969484.625163,VS0,VE134
+      X-XSS-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

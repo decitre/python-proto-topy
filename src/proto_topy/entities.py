@@ -1,14 +1,15 @@
+from google.protobuf import descriptor_pool
+from google.protobuf.message import Message
+from google.protobuf.message_factory import GetMessageClassesForFiles
 from google.protobuf.descriptor_pb2 import FileDescriptorSet
-from google.protobuf.message_factory import GetMessages
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint32
-from google.protobuf.message import Message
 
 import os
 import importlib.util
 import sys
 import types
-from distutils.spawn import find_executable
+from shutil import which
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from subprocess import PIPE, Popen
@@ -69,12 +70,13 @@ class ProtoCollection:
         self.descriptor_data = None
         self.descriptor_set = None
         self.messages = {}
+        self.pool = descriptor_pool.DescriptorPool()
 
         if not self.compiler_path:
             if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
                 self.compiler_path = Path(os.environ['PROTOC'])
             else:
-                self.compiler_path or Path(find_executable('protoc'))
+                self.compiler_path or Path(which('protoc'))
         if not self.compiler_path.is_file():
             raise FileNotFoundError()
 
@@ -119,7 +121,9 @@ class ProtoCollection:
             with open(str(artifact_fds_path), mode="rb") as f:
                 self.descriptor_data = f.read()
             self.descriptor_set = FileDescriptorSet.FromString(self.descriptor_data)
-            self.messages = GetMessages([file for file in self.descriptor_set.file])
+            for file_descriptor_proto in self.descriptor_set.file:
+                self.pool.Add(file_descriptor_proto)
+            self.messages = GetMessageClassesForFiles([fdp.name for fdp in self.descriptor_set.file], self.pool)
 
             self._add_init_files(dir)
 
@@ -132,7 +136,6 @@ class ProtoCollection:
             sys.path.pop()
         return self
 
-
     def version(self) -> str:
         outs = ProtoCollection._do_compile(
             self.compiler_path,
@@ -142,7 +145,6 @@ class ProtoCollection:
         )
         if outs:
             return outs.split()[-1].decode()
-
 
     @staticmethod
     def _do_compile(

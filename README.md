@@ -15,35 +15,50 @@ It is useful for Python programs needing to parse protobuf messages without havi
 
     pip install proto-topy
 
-## Usage example
+## Example: address book
+
+Adaptation of the `protocolbuffers` [example](https://github.com/protocolbuffers/protobuf/tree/main/examples):
 
 ```python
-import sys, os
-from pathlib import Path
-from distutils.spawn import find_executable
+import requests
+import sys
+from shutil import which
 from proto_topy.entities import ProtoModule
-from google.protobuf.timestamp_pb2 import Timestamp
+from pathlib import Path
 
-protoc_path = Path(find_executable("protoc") or os.environ.get('PROTOC'))
+# Retrieve protobuf messages definitions
+example_source = requests.get(
+    "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/"
+    "examples/addressbook.proto").text
 
-source = """
+example_path = Path(
+    "protocolbuffers/protobuf/blob/main/examples/addressbook.proto")
 
-    syntax = "proto3";
-    import "google/protobuf/timestamp.proto";
-    
-    message Test5 {
-        google.protobuf.Timestamp created = 1;
-    }
+# Compile and import
+module = (ProtoModule(file_path=example_path, source=example_source)
+          .compiled(Path(which("protoc"))))
+sys.modules["addressbook"] = module.py
 
-"""
+# Produce a serialized address book
+address_book = module.py.AddressBook()
+person = address_book.people.add()
+person.id = 111
+person.name = "A Name"
+person.email = "a.name@mail.com"
+phone_number = person.phones.add()
+phone_number.number = "+1234567"
+phone_number.type = module.py.Person.MOBILE
+with open("address_book.data", "wb") as o:
+    o.write(address_book.SerializeToString())
 
-proto = ProtoModule(file_path=Path("test5.proto"), source=source).compiled(protoc_path)
-sys.modules["test5"] = proto.py
-
-assert isinstance(proto.py.Test5().created, Timestamp)
+# Use a serialized address book
+address_book = module.py.AddressBook()
+with open("address_book.data", "rb") as i:
+    address_book.ParseFromString(i.read())
+    for person in address_book.people:
+        print(person.id, person.name, person.email, phone_number.number)
 ```
 
-More examples in [test_proto_topy.py][tests].
 
 [pypi]: https://pypi.org/project/proto-topy
 [test_badge]: https://github.com/decitre/python-proto-topy/actions/workflows/test.yml/badge.svg

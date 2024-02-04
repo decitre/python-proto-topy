@@ -1,88 +1,120 @@
 name: test
 on:
   push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+  schedule:
+    - cron: "0 8 * * *"
 
 jobs:
-  buildv1:
+  py_39_proto_203:
     strategy:
       fail-fast: false
       matrix:
-        # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ['3.8', '3.9', '3.10', '3.11']
-        protoc: ['3.20.3']
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - uses: actions/setup-python@v4
-      # https://github.com/actions/setup-python
-      with:
-        python-version: ${{ matrix.python }}
-        architecture: x64
-        cache: pip
-    - name: Install Protoc
-      uses: arduino/setup-protoc@v1
-      # https://github.com/arduino/setup-protoc
-      with:
-        version: ${{ matrix.protoc }}
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - name: install dependencies
-      run: |
-        python -mpip install --progress-bar=off -r ci/requirements.txt
-        virtualenv --version
-        pip --version
-        tox --version
-        pip list --format=freeze
-        protoc --version
-    - name: test
-      env:
-        TOXPYTHON: ${{ matrix.python }}
-      run: >
-        tox -e ${{ matrix.python }} -v
-  buildv2:
-    # repetition due to lack of support in `uses:` of context/matrix variables
-    # https://github.com/orgs/community/discussions/9049
-    strategy:
-      fail-fast: false
-      matrix:
-        # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ['3.8', '3.9', '3.10', '3.11']
-        protoc: ['21.12', '23.x']
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+          architecture: x64
+          cache: pip
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1.1.2
+        with:
+          version: 3.20.3
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --progress-bar=off -r requirements/ci.txt
+          pip --version
+          tox --version
+          protoc --version
+          pip freeze
+      - name: Setup test suite
+        run: tox -vv --notest
+      - name: Run test suite
+        run: |
+          tox -e check --skip-pkg-install
+          tox --skip-pkg-install
+
+  py_31x_proto_252:
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: [ '3.10', '3.11']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        # https://github.com/actions/checkout
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
         # https://github.com/actions/setup-python
         with:
           python-version: ${{ matrix.python }}
           architecture: x64
           cache: pip
       - name: Install Protoc
-        uses: arduino/setup-protoc@v2
+        uses: arduino/setup-protoc@v3
         # https://github.com/arduino/setup-protoc
         with:
-          version: ${{ matrix.protoc }}
+          version: 25.2
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: install dependencies
         run: |
-          python -mpip install --progress-bar=off -r ci/requirements.txt
-          virtualenv --version
+          pip install --upgrade pip
+          pip install --progress-bar=off -r requirements/ci.txt
           pip --version
           tox --version
-          pip list --format=freeze
           protoc --version
-      - name: test
-        env:
-          TOXPYTHON: ${{ matrix.python }}
-        run: >
-          tox -e ${{ matrix.python }} -v
+          pip freeze
+      - name: Setup test suite
+        run: tox -vv --notest
+      - name: Run test suite
+        run: |
+          tox -e check --skip-pkg-install
+          tox --skip-pkg-install
+
+  py_3x_proto_25x:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+          architecture: x64
+          cache: pip
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: 25.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --progress-bar=off -r requirements/ci.txt
+          pip --version
+          tox --version
+          protoc --version
+          pip freeze
+      - name: Setup test suite
+        run: tox -vv --notest
+      - name: Run test suite
+        run: |
+          tox -e check --skip-pkg-install
+          tox --skip-pkg-install
