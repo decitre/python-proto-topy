@@ -4,3 +4,4 @@ pytest
 pytest-recording
 requests
 urllib3<2
+bumpver
