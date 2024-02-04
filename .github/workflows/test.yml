@@ -1,9 +1,9 @@
 name: test
 on:
   push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+  schedule:
+    - cron: "0 8 * * *"
 
 jobs:
   build:
@@ -13,8 +13,8 @@ jobs:
         # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
         # , macos-latest, windows-latest]
         os: [ubuntu-latest]
-        # , '3.9', '3.10', '3.11', '3.12']
-        python: ['3.8']
+        # , '3.9', '3.10', '3.8', '3.12']
+        python: ['3.11']
         # ['21.12', '23.x'] ??
         protoc: ['25.x']
     runs-on: ${{ matrix.os }}
@@ -45,5 +45,7 @@ jobs:
     - name: Setup test suite
       run: tox -vv --notest
     - name: Run test suite
-      run: tox --skip-pkg-install
+      run: |
+        tox -e check
+        tox --skip-pkg-install
 
