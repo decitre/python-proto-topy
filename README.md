@@ -15,7 +15,7 @@ It is useful for Python programs needing to parse protobuf messages without havi
 
     pip install proto-topy
 
-## Example: address book
+## `ProtoModule` example: address book
 
 Adaptation of the `protocolbuffers` [example](https://github.com/protocolbuffers/protobuf/tree/main/examples):
 
@@ -57,6 +57,42 @@ with open("address_book.data", "rb") as i:
     address_book.ParseFromString(i.read())
     for person in address_book.people:
         print(person.id, person.name, person.email, phone_number.number)
+```
+
+## `ProtoCollection` example
+
+When several `.proto` need to be considered, us a `ProtoCollection`:
+
+```python
+import sys
+from proto_topy import ProtoModule, ProtoCollection
+from pathlib import Path
+
+module1 = ProtoModule(
+    file_path=Path("p1/p2/other2.proto"),
+    source="""
+    syntax = "proto3";
+    import "google/protobuf/timestamp.proto";
+    message OtherThing2 {
+        google.protobuf.Timestamp created = 1;
+    };"""
+)
+
+module2 = ProtoModule(
+    file_path=Path("p3/p4/test6.proto"),
+    source="""
+    syntax = "proto3";
+    import "p1/p2/other2.proto";
+    message Test6 {
+        OtherThing2 foo = 1;
+    };"""
+)
+
+collection = ProtoCollection(module1, module2).compile()
+sys.modules.update({proto.name: proto.py 
+                    for proto in collection.modules.values()})
+print(sys.modules['test6'].Test6, 
+      sys.modules['other2'].OtherThing2)
 ```
 
 

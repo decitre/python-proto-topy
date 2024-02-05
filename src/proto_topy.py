@@ -96,7 +96,7 @@ class ProtoCollection:
     Encapsulates a protobuf `FileDescriptorSet` associated to a list of `ProtoModule` instances.
 
     Important attributes:
-    - descriptor_set: a `FileDescriptorSet` instance, a compiled protobuf describing the messafe types in the collection
+    - descriptor_set: a `FileDescriptorSet` instance, a compiled protobuf describing the message types in the collection
     - descriptor_data: the serialized `FileDescriptorSet` instance. Suitable to a transmission over the wire
     - messages: A dictionary of protobuf messages classes indexed by their proto names
     """
@@ -143,7 +143,7 @@ class ProtoCollection:
             proto_source_files = [
                 str(file_path) for file_path in protos_target_paths.keys()
             ]
-            ProtoCollection.marshal(protos_target_paths)
+            ProtoCollection._marshal(protos_target_paths)
 
             compile_to_py_options = [f"--proto_path={dir}", f"--python_out={dir}"]
             ProtoCollection._do_compile(
@@ -188,6 +188,12 @@ class ProtoCollection:
         return self
 
     def compiler_version(self, compiler_path: Path = None) -> str:
+        """
+        Returns the result of a `protoc --version` command.
+
+        :param compiler_path: The Path to the protoc compiler (optional)
+        :return: a string (for instance "libprotoc 25.2")
+        """
         if not compiler_path:
             compiler_path = ProtoCollection._get_compiler_path()
         outs = ProtoCollection._do_compile(
@@ -241,7 +247,7 @@ class ProtoCollection:
                 Path(base_dir, parent_path, "__init__.py").touch()
 
     @staticmethod
-    def marshal(protos: Dict[Path, ProtoModule]) -> None:
+    def _marshal(protos: Dict[Path, ProtoModule]) -> None:
         for target_file_path, proto in protos.items():
             Path(target_file_path.parent).mkdir(parents=True, exist_ok=True)
             with open(str(target_file_path), "w") as o:
@@ -249,6 +255,10 @@ class ProtoCollection:
 
 
 class DelimitedMessageFactory:
+    """
+    A codec for streams of protobuf messages of a specific schema.
+    """
+
     def __init__(
         self, stream: BinaryIO, *messages: Message, message_type: ClassVar = None
     ):
