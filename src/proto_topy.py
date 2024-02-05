@@ -1,26 +1,50 @@
-from google.protobuf import descriptor_pool
-from google.protobuf.message import Message
-from google.protobuf.message_factory import GetMessageClassesForFiles
-from google.protobuf.descriptor_pb2 import FileDescriptorSet
-from google.protobuf.internal.encoder import _VarintBytes
-from google.protobuf.internal.decoder import _DecodeVarint32
-
-import os
 import importlib.util
+import os
 import sys
 import types
-from shutil import which
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from subprocess import PIPE, Popen
-from typing import Dict, ClassVar, Union, Generator, Tuple, BinaryIO
+from importlib.metadata import version
 from logging import getLogger
+from pathlib import Path
+from shutil import which
+from subprocess import PIPE, Popen
+from tempfile import TemporaryDirectory
+from typing import BinaryIO, ClassVar, Dict, Generator, Tuple, Union
 
+from google.protobuf import descriptor_pool
+from google.protobuf.descriptor_pb2 import FileDescriptorSet
+from google.protobuf.internal.decoder import _DecodeVarint32
+from google.protobuf.internal.encoder import _VarintBytes
+from google.protobuf.message import Message
+from google.protobuf.message_factory import GetMessageClassesForFiles
+
+__version__ = version("proto-topy")
 
 logger = getLogger(Path(__file__).name)
 
+__all__ = [
+    "ProtoModule",
+    "ProtoCollection",
+    "DelimitedMessageFactory",
+    "NoCompiler",
+    "CompilationFailed",
+]
+
 
 class ProtoModule:
+    """
+    Encapsulates a protobuf `source` string and its related `types.ModuleType` instance.
+
+    Usage example:
+
+    >>> from proto_topy import ProtoModule
+    >>> from pathlib import Path
+    >>> from shutil import which
+
+    >>> source = 'syntax = "proto3"; message Foo { bool this = 1;}'
+    >>> scope = {}
+    >>> module = ProtoModule(file_path=Path("foo.proto"), source=source).compiled(Path(which("protoc")))
+    """
+
     name: str
     package_path: Path
     file_path: Path
@@ -73,10 +97,10 @@ class ProtoCollection:
         self.pool = descriptor_pool.DescriptorPool()
 
         if not self.compiler_path:
-            if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
-                self.compiler_path = Path(os.environ['PROTOC'])
+            if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
+                self.compiler_path = Path(os.environ["PROTOC"])
             else:
-                self.compiler_path or Path(which('protoc'))
+                self.compiler_path or Path(which("protoc"))
         if not self.compiler_path.is_file():
             raise FileNotFoundError()
 
@@ -123,7 +147,9 @@ class ProtoCollection:
             self.descriptor_set = FileDescriptorSet.FromString(self.descriptor_data)
             for file_descriptor_proto in self.descriptor_set.file:
                 self.pool.Add(file_descriptor_proto)
-            self.messages = GetMessageClassesForFiles([fdp.name for fdp in self.descriptor_set.file], self.pool)
+            self.messages = GetMessageClassesForFiles(
+                [fdp.name for fdp in self.descriptor_set.file], self.pool
+            )
 
             self._add_init_files(dir)
 
@@ -191,7 +217,7 @@ class ProtoCollection:
     def marshal(protos: Dict[Path, ProtoModule]) -> None:
         for target_file_path, proto in protos.items():
             Path(target_file_path.parent).mkdir(parents=True, exist_ok=True)
-            with open(str(target_file_path), "wt") as o:
+            with open(str(target_file_path), "w") as o:
                 o.write(proto.source)
 
 
@@ -211,7 +237,10 @@ class DelimitedMessageFactory:
 
     def read(
         self,
-    ) -> Union[Generator[Tuple[int, Message], None, None], Generator[Tuple[int, bytearray], None, None]]:
+    ) -> Union[
+        Generator[Tuple[int, Message], None, None],
+        Generator[Tuple[int, bytearray], None, None],
+    ]:
         raise NotImplementedError()
 
     def write(self, *messages: Message):

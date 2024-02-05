@@ -4,8 +4,8 @@
 [![python version][python_versions_badge]][pypi]
 [![python implementation][python_implementation_badge]][pypi]
 
-A tool that 
-- takes a `str` containing protobuf messages definitions 
+A tool that
+- takes a `str` containing protobuf messages definitions
 - returns a `types.ModuleType` instance
 
 It is useful for Python programs needing to parse protobuf messages without having to host `.proto` files in their code base.
@@ -23,7 +23,7 @@ Adaptation of the `protocolbuffers` [example](https://github.com/protocolbuffers
 import requests
 import sys
 from shutil import which
-from proto_topy.entities import ProtoModule
+from proto_topy import ProtoModule
 from pathlib import Path
 
 # Retrieve protobuf messages definitions

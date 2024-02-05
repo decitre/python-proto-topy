@@ -8,6 +8,7 @@ include .github/workflows/test.yml
 include .pre-commit-config.yaml
 include LICENSE
 include README.md
+include CONTRIBUTING.md
 recursive-include requirements *.txt
 
 

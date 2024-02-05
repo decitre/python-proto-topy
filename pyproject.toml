@@ -1,14 +1,59 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel",
-]
+requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "proto-topy"
+version = "0.2.0"
+description = "Yet another tool that compiles .proto strings and import the outcome Python modules."
+requires-python = ">=3.8"
+license = {text = "MIT"}
+classifiers = [
+    "Intended Audience :: Developers",
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python :: 3',
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    'Programming Language :: Python :: Implementation :: CPython',
+    "Operating System :: OS Independent"
+]
+dependencies = ["protobuf>=3.20.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+homepage = "https://github.com/decitre/python-proto-topy"
+
+[project.optional-dependencies]
+dev = [
+    "pytest", "pytest-recording", "urllib3<2",
+    "bumpver", "black@git+https://github.com/psf/black.git",
+    "ruff", "pre-commit", "tox"
+]
 
 [tool.black]
 line-length = 88
 target-version = ['py311']
-skip-string-normalization = true
+
+[tool.ruff]
+line-length = 88
+exclude = [
+    ".tox", ".eggs", "build", "dist", "__pycache__",
+    "docs/source/conf.py", "old", "env",
+]
+lint.ignore = ["COM812", "D103", "E501", "F401", "F403"]
+lint.select = ["B", "B9", "C", "E", "F", "W", "I001"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 18
 
 [tool.bumpver]
 current_version = "0.2.0"
@@ -20,8 +65,74 @@ push = true
 
 [tool.bumpver.file_patterns]
 "pyproject.toml" = [
-    'current_version = "{version}"',
+    'version = "{version}"',
 ]
-"src/proto_topy/__init__.py" = [
-    '^__version__ = "{version}"$'
-]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist =
+    clean,
+    lint,
+    {3.8,3.9,3.10,3.11,3.12},
+    report
+ignore_basepython_conflict = true
+
+[gh]
+python =
+    3.12 = py312
+    3.11 = py311
+    3.10 = py310
+    3.9 = py39
+    3.8 = py38
+
+[testenv]
+basepython =
+    3.8: {env:TOXPYTHON:python3.8}
+    3.9: {env:TOXPYTHON:python3.9}
+    3.10: {env:TOXPYTHON:python3.10}
+    3.11: {env:TOXPYTHON:python3.11}
+    3.12: {env:TOXPYTHON:python3.12}
+    {clean,lint,report,codecov}: {env:TOXPYTHON:python3}
+setenv =
+    PYTHONPATH={toxinidir}/src
+    PYTHONUNBUFFERED=yes
+passenv =
+    *
+usedevelop = false
+deps =
+    pytest
+    pytest-cov
+    requests
+    pytest-recording
+    urllib3<2
+commands =
+    {posargs:pytest --cov --cov-report=term-missing -vv tests}
+
+[testenv:codecov]
+deps =
+    codecov
+skip_install = true
+commands =
+    codecov []
+
+[testenv:lint]
+deps = pre-commit
+commands = pre-commit run --all-files --show-diff-on-failure
+
+[testenv:report]
+deps =
+    coverage
+skip_install = true
+commands =
+    coverage report
+    coverage html
+    coverage xml
+
+[testenv:clean]
+commands = coverage erase
+skip_install = true
+deps =
+    coverage
+
+"""
