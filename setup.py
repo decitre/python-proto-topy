@@ -1,107 +1,16 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
+# Copyright (C) 2022 HERE Global B.V. and its affiliate(s).
+# All rights reserved.
 
-import io
-from glob import glob
-from os.path import basename, dirname, join, splitext
-from typing import Set, Any, List, Dict
+# This software and other materials contain proprietary information
+# controlled by HERE and are protected by applicable copyright legislation.
+# Any use and utilization of this software and other materials and
+# disclosure to any third parties is conditional upon having a separate
+# agreement with HERE for the access, use, utilization or disclosure of this
+# software. In the absence of such agreement, the use of the software is not
+# allowed.
 
-from setuptools import find_packages
 from setuptools import setup
-from pathlib import Path
 
-
-project_name = "proto-topy"
-main_package_name = "proto_topy"
-github_home = "https://github.com/decitre"
-
-
-def get_property(prop, packages_path: str, packages: List[str]) -> Set[Any]:
-    """
-    Searches and returns a property from all packages __init__.py files
-    :param prop: property searched
-    :param packages_path: root path of packages to search into
-    :param packages: array of packages paths
-    :return: an set of values
-    """
-    results = set()
-    namespace: Dict[str, Any] = {}
-    for package in packages:
-        init_file = open(Path(packages_path, package, "__init__.py")).read()
-        exec(init_file, namespace)
-        if prop in namespace:
-            results.add(namespace[prop])
-    return results
-
-
-def get_requirements(file_path: str, no_precise_version: bool = False) -> List[str]:
-    requirements = []
-    try:
-        with open(file_path, "rt") as r:
-            for line in r.readlines():
-                package = line.strip()
-                if not package or package.startswith("#"):
-                    continue
-                if no_precise_version:
-                    package = package.split("==")[0]
-                requirements.append(package)
-    except FileExistsError:
-        pass
-    return requirements
-
-
-def read(*names, **kwargs):
-    with io.open(
-        join(dirname(__file__), *names), encoding=kwargs.get('encoding', 'utf8')
-    ) as fh:
-        return fh.read()
-
-
-here = Path(__file__).parent
-with open(Path(here, "README.md"), encoding='utf-8') as f:
-    long_description = f.read()
-
-if __name__ == '__main__':
-
-    _packages_path = "src"
-    _packages = find_packages(where=_packages_path)
-    version = get_property("__version__", _packages_path, _packages).pop()
-    requirements = ["click"]
-    requirements.extend(get_requirements("requirements/build.txt", no_precise_version=False))
-    requirements_dev = get_requirements("requirements/dev.txt")
-
-    setup(
-        name=project_name,
-        version=version,
-        license='MIT',
-        description='Yet another tool that compiles .proto strings and import the outcome Python modules.',
-        long_description=long_description,
-        long_description_content_type='text/markdown',
-        author='Emmanuel Decitre',
-        url=f'{github_home}/python-{project_name}',
-        packages=_packages,
-        package_dir={'': _packages_path},
-        py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
-        include_package_data=True,
-        zip_safe=False,
-        classifiers=[
-            # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
-            'License :: OSI Approved :: MIT License',
-            'Programming Language :: Python :: 3',
-            "Programming Language :: Python :: 3 :: Only",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
-            "Programming Language :: Python :: 3.10",
-            "Programming Language :: Python :: 3.11",
-            "Programming Language :: Python :: 3.12",
-            'Programming Language :: Python :: Implementation :: CPython',
-            "Operating System :: OS Independent",
-        ],
-        project_urls={
-            'Issue Tracker': f'{github_home}/python-{project_name}/issues',
-        },
-        keywords=['protobuf'],
-        python_requires='>=3.8',
-        install_requires=requirements,
-        extras_require={"dev": requirements_dev},
-    )
+if __name__ == "__main__":
+    setup()

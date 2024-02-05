@@ -1,26 +1,50 @@
-from google.protobuf import descriptor_pool
-from google.protobuf.message import Message
-from google.protobuf.message_factory import GetMessageClassesForFiles
-from google.protobuf.descriptor_pb2 import FileDescriptorSet
-from google.protobuf.internal.encoder import _VarintBytes
-from google.protobuf.internal.decoder import _DecodeVarint32
-
-import os
 import importlib.util
+import os
 import sys
 import types
-from shutil import which
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from subprocess import PIPE, Popen
-from typing import Dict, ClassVar, Union, Generator, Tuple, BinaryIO
+from importlib.metadata import version
 from logging import getLogger
+from pathlib import Path
+from shutil import which
+from subprocess import PIPE, Popen
+from tempfile import TemporaryDirectory
+from typing import BinaryIO, ClassVar, Dict, Generator, Tuple, Union
 
+from google.protobuf import descriptor_pool
+from google.protobuf.descriptor_pb2 import FileDescriptorSet
+from google.protobuf.internal.decoder import _DecodeVarint32
+from google.protobuf.internal.encoder import _VarintBytes
+from google.protobuf.message import Message
+from google.protobuf.message_factory import GetMessageClassesForFiles
+
+__version__ = version("proto-topy")
 
 logger = getLogger(Path(__file__).name)
 
+__all__ = [
+    "ProtoModule",
+    "ProtoCollection",
+    "DelimitedMessageFactory",
+    "NoCompiler",
+    "CompilationFailed",
+]
+
 
 class ProtoModule:
+    """
+    Encapsulates a protobuf `source` string and its related `types.ModuleType` instance.
+
+    Usage example:
+
+    >>> from proto_topy import ProtoModule
+    >>> from pathlib import Path
+    >>> from shutil import which
+
+    >>> source = 'syntax = "proto3"; message Foo { bool this = 1;}'
+    >>> scope = {}
+    >>> module = ProtoModule(file_path=Path("foo.proto"), source=source).compiled(Path(which("protoc")))
+    """
+
     name: str
     package_path: Path
     file_path: Path
@@ -36,16 +60,26 @@ class ProtoModule:
         self.py = None
         self.py_source = None
 
-    def set_module(self, content: str, global_scope: dict = None):
+    def _set_module(self, content: str, global_scope: dict = None):
         self.py_source = content
         spec = importlib.util.spec_from_loader(self.name, loader=None)
         compiled_content = compile(content, self.name, "exec")
         self.py = importlib.util.module_from_spec(spec)
         exec(compiled_content, self.py.__dict__)
 
-    def compiled(self, compiler_path: Path) -> "ProtoModule":
-        collection = ProtoCollection(compiler_path, self)
-        collection.compile()
+    def compiled(self, compiler_path: Path = None) -> "ProtoModule":
+        """
+        Returns the ProtoModule instance in a compiled state:
+
+        - self.py_source contains the generated Python code
+        - self.py contains the loaded module
+
+        :param compiler_path: The Path to the protoc compiler (optional)
+        :return: self
+        """
+
+        collection = ProtoCollection(self)
+        collection.compiled(compiler_path=compiler_path)
         return self
 
 
@@ -58,27 +92,25 @@ class CompilationFailed(Exception):
 
 
 class ProtoCollection:
-    compiler_path: Path
+    """
+    Encapsulates a protobuf `FileDescriptorSet` associated to a list of `ProtoModule` instances.
+
+    Important attributes:
+    - descriptor_set: a `FileDescriptorSet` instance, a compiled protobuf describing the message types in the collection
+    - descriptor_data: the serialized `FileDescriptorSet` instance. Suitable to a transmission over the wire
+    - messages: A dictionary of protobuf messages classes indexed by their proto names
+    """
+
     modules: Dict[Path, ProtoModule]
     descriptor_data: bytes
     descriptor_set: FileDescriptorSet
     messages: dict
 
-    def __init__(self, compiler_path: Path, *protos: ProtoModule):
+    def __init__(self, *protos: ProtoModule):
         self.modules = {}
-        self.compiler_path = compiler_path
         self.descriptor_data = None
         self.descriptor_set = None
         self.messages = {}
-        self.pool = descriptor_pool.DescriptorPool()
-
-        if not self.compiler_path:
-            if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
-                self.compiler_path = Path(os.environ['PROTOC'])
-            else:
-                self.compiler_path or Path(which('protoc'))
-        if not self.compiler_path.is_file():
-            raise FileNotFoundError()
 
         for proto in protos or []:
             self.add_proto(proto)
@@ -88,7 +120,22 @@ class ProtoCollection:
             raise KeyError(f"{proto.file_path} already added")
         self.modules[proto.file_path] = proto
 
-    def compile(self, global_scope: dict = None) -> "ProtoCollection":
+    @staticmethod
+    def _get_compiler_path() -> Path:
+        if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
+            compiler_path = Path(os.environ["PROTOC"])
+        else:
+            compiler_path = Path(which("protoc"))
+        if not compiler_path.is_file():
+            raise FileNotFoundError("protoc compiler not found")
+        return compiler_path
+
+    def compiled(
+        self, compiler_path: Path = None, global_scope: dict = None
+    ) -> "ProtoCollection":
+        if not compiler_path:
+            compiler_path = ProtoCollection._get_compiler_path()
+
         with TemporaryDirectory() as dir:
             protos_target_paths = {
                 Path(dir, proto.file_path): proto for proto in self.modules.values()
@@ -96,11 +143,11 @@ class ProtoCollection:
             proto_source_files = [
                 str(file_path) for file_path in protos_target_paths.keys()
             ]
-            ProtoCollection.marshal(protos_target_paths)
+            ProtoCollection._marshal(protos_target_paths)
 
             compile_to_py_options = [f"--proto_path={dir}", f"--python_out={dir}"]
             ProtoCollection._do_compile(
-                self.compiler_path,
+                compiler_path,
                 compile_to_py_options,
                 proto_source_files,
                 raise_exception=True,
@@ -113,7 +160,7 @@ class ProtoCollection:
                 f"--descriptor_set_out={artifact_fds_path}",
             ]
             ProtoCollection._do_compile(
-                self.compiler_path,
+                compiler_path,
                 compile_to_py_options,
                 proto_source_files,
                 raise_exception=False,
@@ -121,9 +168,13 @@ class ProtoCollection:
             with open(str(artifact_fds_path), mode="rb") as f:
                 self.descriptor_data = f.read()
             self.descriptor_set = FileDescriptorSet.FromString(self.descriptor_data)
+
+            pool = descriptor_pool.DescriptorPool()
             for file_descriptor_proto in self.descriptor_set.file:
-                self.pool.Add(file_descriptor_proto)
-            self.messages = GetMessageClassesForFiles([fdp.name for fdp in self.descriptor_set.file], self.pool)
+                pool.Add(file_descriptor_proto)
+            self.messages = GetMessageClassesForFiles(
+                [fdp.name for fdp in self.descriptor_set.file], pool
+            )
 
             self._add_init_files(dir)
 
@@ -132,13 +183,21 @@ class ProtoCollection:
                 with open(
                     Path(dir, proto.package_path, f"{proto.name}_pb2.py")
                 ) as module_path:
-                    proto.set_module(module_path.read(), global_scope=global_scope)
+                    proto._set_module(module_path.read(), global_scope=global_scope)
             sys.path.pop()
         return self
 
-    def version(self) -> str:
+    def compiler_version(self, compiler_path: Path = None) -> str:
+        """
+        Returns the result of a `protoc --version` command.
+
+        :param compiler_path: The Path to the protoc compiler (optional)
+        :return: a string (for instance "libprotoc 25.2")
+        """
+        if not compiler_path:
+            compiler_path = ProtoCollection._get_compiler_path()
         outs = ProtoCollection._do_compile(
-            self.compiler_path,
+            compiler_path,
             ["--version"],
             [],
             raise_exception=True,
@@ -188,14 +247,18 @@ class ProtoCollection:
                 Path(base_dir, parent_path, "__init__.py").touch()
 
     @staticmethod
-    def marshal(protos: Dict[Path, ProtoModule]) -> None:
+    def _marshal(protos: Dict[Path, ProtoModule]) -> None:
         for target_file_path, proto in protos.items():
             Path(target_file_path.parent).mkdir(parents=True, exist_ok=True)
-            with open(str(target_file_path), "wt") as o:
+            with open(str(target_file_path), "w") as o:
                 o.write(proto.source)
 
 
 class DelimitedMessageFactory:
+    """
+    A codec for streams of protobuf messages of a specific schema.
+    """
+
     def __init__(
         self, stream: BinaryIO, *messages: Message, message_type: ClassVar = None
     ):
@@ -211,7 +274,10 @@ class DelimitedMessageFactory:
 
     def read(
         self,
-    ) -> Union[Generator[Tuple[int, Message], None, None], Generator[Tuple[int, bytearray], None, None]]:
+    ) -> Union[
+        Generator[Tuple[int, Message], None, None],
+        Generator[Tuple[int, bytearray], None, None],
+    ]:
         raise NotImplementedError()
 
     def write(self, *messages: Message):
@@ -223,8 +289,19 @@ class DelimitedMessageFactory:
                     f"Inconsistent type: {message.__class__.__name__} "
                     f"<> {self.message_type.__class__.__name__}"
                 )
-            self.stream.write(_VarintBytes(message.ByteSize()))
-            self.stream.write(message.SerializeToString())
+            length = _VarintBytes(message.ByteSize())
+            data = message.SerializeToString()
+            self.stream.write(length)
+            self.stream.write(data)
+            self.offset += len(length) + len(data)
+
+    def rewind(self):
+        """
+        Rewind the stream to its start
+        :return: None
+        """
+        self.stream.seek(0)
+        self.offset = 0
 
     def bytes_read(self) -> Generator[Tuple[int, bytes], None, None]:
         """
@@ -254,6 +331,7 @@ class DelimitedMessageFactory:
         :return: tuple of message offset and decoded bytes
         """
         buf = bytearray(self.stream.read(10))
+        self.offset += 10
         message_type = message_type or self.message_type
         while buf:
             message = message_type()
