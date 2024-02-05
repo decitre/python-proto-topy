@@ -118,7 +118,7 @@ commands =
 
 [testenv:lint]
 deps = pre-commit
-commands = pre-commit run --all-files --show-diff-on-failure
+commands = pre-commit run --all-files
 
 [testenv:report]
 deps =
