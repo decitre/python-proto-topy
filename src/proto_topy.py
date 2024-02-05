@@ -79,7 +79,7 @@ class ProtoModule:
         """
 
         collection = ProtoCollection(self)
-        collection.compile(compiler_path=compiler_path)
+        collection.compiled(compiler_path=compiler_path)
         return self
 
 
@@ -130,7 +130,7 @@ class ProtoCollection:
             raise FileNotFoundError("protoc compiler not found")
         return compiler_path
 
-    def compile(
+    def compiled(
         self, compiler_path: Path = None, global_scope: dict = None
     ) -> "ProtoCollection":
         if not compiler_path:

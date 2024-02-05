@@ -64,7 +64,7 @@ def test_add_proto2():
 def test_bad_protoc():
     dummy = unlink_proto_file("dummy")
     with pytest.raises(FileNotFoundError):
-        ProtoCollection().compile(compiler_path=dummy)
+        ProtoCollection().compiled(compiler_path=dummy)
     unlink_proto_file("dummy")
 
 
@@ -83,7 +83,7 @@ def test_compile_redundant_proto():
     proto1 = ProtoModule(file_path=testr_proto, source=proto_source)
     proto2 = ProtoModule(file_path=testr_proto, source=proto_source)
     with pytest.raises(KeyError, match=r"testr.proto already added"):
-        ProtoCollection(proto1, proto2).compile(compiler_path=protoc_path)
+        ProtoCollection(proto1, proto2).compiled(compiler_path=protoc_path)
     unlink_proto_file("testr.proto")
 
 
@@ -166,7 +166,7 @@ def test_compile_ununsed_dependency():
     )
     modules = ProtoCollection(proto_module, other_proto_module)
     try:
-        modules.compile(compiler_path=protoc_path)
+        modules.compiled(compiler_path=protoc_path)
     except CompilationFailed:
         pytest.fail("Unexpected CompilationFailed ..")
     unlink_proto_file("test.proto")
@@ -200,7 +200,7 @@ def test_compile_simple_dependency():
     """,
     )
     modules = ProtoCollection(proto_module, other_proto_module)
-    modules.compile(compiler_path=protoc_path)
+    modules.compiled(compiler_path=protoc_path)
     sys.modules.update({proto.name: proto.py for proto in modules.modules.values()})
     atest6 = modules.modules[test_proto].py.Test6()
     assert isinstance(atest6.foo.created, Timestamp)
@@ -218,7 +218,7 @@ def test_encode_message():
     proto1 = ProtoModule(file_path=test7_proto, source=proto_source.format(n=7))
     proto2 = ProtoModule(file_path=test8_proto, source=proto_source.format(n=8))
 
-    ProtoCollection(proto1, proto2).compile(compiler_path=protoc_path)
+    ProtoCollection(proto1, proto2).compiled(compiler_path=protoc_path)
     assert array("B", proto1.py.Test7(foo=124).SerializeToString()) == array(
         "B", [8, 124]
     )

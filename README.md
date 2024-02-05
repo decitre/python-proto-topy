@@ -21,12 +21,10 @@ Adaptation of the `protocolbuffers` [example](https://github.com/protocolbuffers
 
 ```python
 import requests
-import sys
-from shutil import which
-from proto_topy import ProtoModule
 from pathlib import Path
+from proto_topy import ProtoModule
 
-# Retrieve protobuf messages definitions
+# Retrieve protobuf messages definitions as a string
 example_source = requests.get(
     "https://raw.githubusercontent.com/protocolbuffers/protobuf/main/"
     "examples/addressbook.proto").text
@@ -35,9 +33,7 @@ example_path = Path(
     "protocolbuffers/protobuf/blob/main/examples/addressbook.proto")
 
 # Compile and import
-module = (ProtoModule(file_path=example_path, source=example_source)
-          .compiled(Path(which("protoc"))))
-sys.modules["addressbook"] = module.py
+module = ProtoModule(file_path=example_path, source=example_source).compiled()
 
 # Produce a serialized address book
 address_book = module.py.AddressBook()
@@ -65,8 +61,8 @@ When several `.proto` need to be considered, use a `ProtoCollection`:
 
 ```python
 import sys
-from proto_topy import ProtoModule, ProtoCollection
 from pathlib import Path
+from proto_topy import ProtoModule, ProtoCollection
 
 module1 = ProtoModule(
     file_path=Path("p1/p2/other2.proto"),
@@ -88,10 +84,10 @@ module2 = ProtoModule(
     };"""
 )
 
-collection = ProtoCollection(module1, module2).compile()
-sys.modules.update({proto.name: proto.py 
+collection = ProtoCollection(module1, module2).compiled()
+sys.modules.update({proto.name: proto.py
                     for proto in collection.modules.values()})
-print(sys.modules['test6'].Test6, 
+print(sys.modules['test6'].Test6,
       sys.modules['other2'].OtherThing2)
 ```
 ## Stream of delimited messages
@@ -99,8 +95,8 @@ print(sys.modules['test6'].Test6,
 To decode a stream of contiguous protobuf messages of the same type, use `DelimitedMessageFactory`. Example:
 
 ```python
-from pathlib import Path
 from io import BytesIO
+from pathlib import Path
 from proto_topy import ProtoModule, DelimitedMessageFactory
 
 # Generate Python module
