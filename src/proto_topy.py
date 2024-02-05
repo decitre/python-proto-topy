@@ -289,8 +289,19 @@ class DelimitedMessageFactory:
                     f"Inconsistent type: {message.__class__.__name__} "
                     f"<> {self.message_type.__class__.__name__}"
                 )
-            self.stream.write(_VarintBytes(message.ByteSize()))
-            self.stream.write(message.SerializeToString())
+            length = _VarintBytes(message.ByteSize())
+            data = message.SerializeToString()
+            self.stream.write(length)
+            self.stream.write(data)
+            self.offset += len(length) + len(data)
+
+    def rewind(self):
+        """
+        Rewind the stream to its start
+        :return: None
+        """
+        self.stream.seek(0)
+        self.offset = 0
 
     def bytes_read(self) -> Generator[Tuple[int, bytes], None, None]:
         """
@@ -320,6 +331,7 @@ class DelimitedMessageFactory:
         :return: tuple of message offset and decoded bytes
         """
         buf = bytearray(self.stream.read(10))
+        self.offset += 10
         message_type = message_type or self.message_type
         while buf:
             message = message_type()

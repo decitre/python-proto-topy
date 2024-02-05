@@ -15,7 +15,7 @@ It is useful for Python programs needing to parse protobuf messages without havi
 
     pip install proto-topy
 
-## `ProtoModule` example: address book
+## single proto example: address book
 
 Adaptation of the `protocolbuffers` [example](https://github.com/protocolbuffers/protobuf/tree/main/examples):
 
@@ -59,9 +59,9 @@ with open("address_book.data", "rb") as i:
         print(person.id, person.name, person.email, phone_number.number)
 ```
 
-## `ProtoCollection` example
+## multiple protos example
 
-When several `.proto` need to be considered, us a `ProtoCollection`:
+When several `.proto` need to be considered, use a `ProtoCollection`:
 
 ```python
 import sys
@@ -94,6 +94,33 @@ sys.modules.update({proto.name: proto.py
 print(sys.modules['test6'].Test6, 
       sys.modules['other2'].OtherThing2)
 ```
+## Stream of delimited messages
+
+To decode a stream of contiguous protobuf messages of the same type, use `DelimitedMessageFactory`. Example:
+
+```python
+from pathlib import Path
+from io import BytesIO
+from proto_topy import ProtoModule, DelimitedMessageFactory
+
+# Generate Python module
+module = ProtoModule(
+    file_path=Path("int32_streams.proto"),
+    source="""
+    syntax = "proto3";
+    message TestInt { int32 val = 1; };"""
+).compiled()
+
+# Feed a DelimitedMessageFactory with a sequence of TestInt instances for a range of 10 ints
+integers = (module.py.TestInt(val=val) for val in range(10))
+factory = DelimitedMessageFactory(BytesIO(), *integers)
+
+# Rewind and read the stream of 10 protobuf messages
+factory.rewind()
+for offset_val in factory.message_read(module.py.TestInt):
+    print(f"TestInt message of val set to {offset_val[1]}")
+```
+
 
 
 [pypi]: https://pypi.org/project/proto-topy
