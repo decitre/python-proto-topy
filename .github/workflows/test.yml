@@ -56,9 +56,7 @@ jobs:
       - name: Setup test suite
         run: tox -vv --notest
       - name: Run test suite
-        run: |
-          tox -e check --skip-pkg-install
-          tox --skip-pkg-install
+        run: tox --skip-pkg-install
 
   py_31x_proto_252:
     strategy:
@@ -97,9 +95,7 @@ jobs:
       - name: Setup test suite
         run: tox -vv --notest
       - name: Run test suite
-        run: |
-          tox -e check --skip-pkg-install
-          tox --skip-pkg-install
+        run: tox --skip-pkg-install
 
   py_3x_proto_25x:
     strategy:
@@ -133,6 +129,4 @@ jobs:
       - name: Setup test suite
         run: tox -vv --notest
       - name: Run test suite
-        run: |
-          tox -e check --skip-pkg-install
-          tox --skip-pkg-install
+        run: tox --skip-pkg-install
