@@ -32,8 +32,7 @@ homepage = "https://github.com/decitre/python-proto-topy"
 [project.optional-dependencies]
 dev = [
     "pytest", "pytest-recording", "urllib3<2",
-    "bumpver", "black@git+https://github.com/psf/black.git",
-    "ruff", "pre-commit", "tox"
+    "bumpver", "black", "ruff", "pre-commit", "tox"
 ]
 
 [tool.black]
