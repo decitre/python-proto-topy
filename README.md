@@ -8,8 +8,7 @@ A tool that
 - takes a `str` containing protobuf messages definitions
 - returns a `types.ModuleType` instance
 
-It is useful for Python programs needing to parse protobuf messages without having to host `.proto` files in their code base.
-
+It is useful for Python programs needing to en/decode protobuf messages for which the definition is provided as a string at runtime.
 
 ## Installation
 
