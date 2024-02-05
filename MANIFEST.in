@@ -3,13 +3,12 @@ graft tests
 
 include .bumpversion.cfg
 include .coveragerc
-include tox.ini
+include pyproject.toml
 include .github/workflows/test.yml
 include .pre-commit-config.yaml
 include LICENSE
 include README.md
 include CONTRIBUTING.md
-recursive-include requirements *.txt
 
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
