@@ -48,9 +48,7 @@ jobs:
       - name: install dependencies
         run: |
           pip install --upgrade pip
-          pip install --progress-bar=off "virtualenv>=16.6.0" "pip>=19.1.1" "setuptools>=18.0.1" "six>=1.14.0" "tox" "tox-gh>=1.2"
-          pip --version
-          tox --version
+          pip install -e '.[ci]'
           protoc --version
           pip freeze
       - name: Setup test suite
@@ -87,9 +85,7 @@ jobs:
       - name: install dependencies
         run: |
           pip install --upgrade pip
-          pip install --progress-bar=off "virtualenv>=16.6.0" "pip>=19.1.1" "setuptools>=18.0.1" "six>=1.14.0" "tox" "tox-gh>=1.2"
-          pip --version
-          tox --version
+          pip install -e '.[ci]'
           protoc --version
           pip freeze
       - name: Setup test suite
@@ -121,10 +117,8 @@ jobs:
       - name: install dependencies
         run: |
           pip install --upgrade pip
-          pip install --progress-bar=off "virtualenv>=16.6.0" "pip>=19.1.1" "setuptools>=18.0.1" "six>=1.14.0" "tox" "tox-gh>=1.2"
+          pip install -e '.[ci]'
           pip --version
-          tox --version
-          protoc --version
           pip freeze
       - name: Setup test suite
         run: tox -vv --notest

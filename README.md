@@ -4,11 +4,11 @@
 [![python version][python_versions_badge]][pypi]
 [![python implementation][python_implementation_badge]][pypi]
 
-A tool that
+A Python package that
 - takes a `str` containing protobuf messages definitions
 - returns a `types.ModuleType` instance
 
-It is useful for Python programs needing to en/decode protobuf messages for which the definition is provided as a string at runtime.
+It is useful for programs needing to en/decode protobuf messages for which the definition is provided as a string at runtime.
 
 ## Installation
 
