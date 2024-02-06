@@ -14,6 +14,8 @@ It is useful for programs needing to en/decode protobuf messages for which the d
 
     pip install proto-topy
 
+Prerequisite: `proto-topy` needs [protoc][protoc] to be installed. On macOS, a simple `brew install protobuf` shall suffice.
+
 ## single proto example: address book
 
 Adaptation of the `protocolbuffers` [example](https://github.com/protocolbuffers/protobuf/tree/main/examples):
@@ -126,3 +128,4 @@ for offset_val in factory.message_read(module.py.TestInt):
 [python_versions_badge]: https://img.shields.io/pypi/pyversions/proto-topy.svg
 [python_implementation_badge]: https://img.shields.io/pypi/implementation/proto-topy.svg
 [tests]: tests/test_proto_topy.py
+[protoc]: https://protobuf.dev/getting-started/pythontutorial/#compiling-protocol-buffers
