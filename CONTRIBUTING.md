@@ -32,3 +32,8 @@ If dev branch `test` workflow succeed, a new version can be released.
 2. Merge
 
    To `master`
+
+3. Publish
+
+   Publishing to PyPi is done through the creation of a release in Github UI.
+   Choose the tag created in step 1, then "Publish release".
