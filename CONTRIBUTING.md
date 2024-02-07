@@ -11,7 +11,7 @@ Contributors using a macOS workstation shall have a look at `tests/tox_mac.sh` t
  
 ## Releasing
 
-If dev branch `test` workflow succeed, a new version can be released.
+If dev branch `test` workflow succeeds, a new version can be released.
 
 1. Version
 
