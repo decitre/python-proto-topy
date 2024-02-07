@@ -15,7 +15,7 @@ If dev branch `test` workflow succeed, a new version can be released.
 
 1. Version
 
-    Use `bumpver` on dev branches (fist, with `--dry`)
+    Use `bumpver` on dev branches. First, with `--dry`, then without :)
     
     Breaking changes:
     

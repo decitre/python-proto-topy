@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "proto-topy"
-version = "1.0.3"
+version = "1.0.4"
 description = "Yet another tool that compiles .proto strings and import the outcome Python modules."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -23,9 +23,6 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 dependencies = ["protobuf>=3.20.3"]
-
-[tool.setuptools.packages.find]
-where = ["src"]
 
 [project.urls]
 homepage = "https://github.com/decitre/python-proto-topy"
@@ -61,12 +58,11 @@ inline-quotes = "double"
 max-complexity = 18
 
 [tool.bumpver]
-current_version = "1.0.3"
+current_version = "1.0.4"
 version_pattern = "MAJOR.MINOR.PATCH"
-commit_message = "bump version {old_version} -> {new_version}"
-commit = true
-tag = true
-push = true
+commit = false
+tag = false
+push = false
 
 [tool.bumpver.file_patterns]
 "pyproject.toml" = [
@@ -74,70 +70,5 @@ push = true
 ]
 
 [tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist =
-    clean,
-    lint,
-    {3.8,3.9,3.10,3.11,3.12},
-    report
-ignore_basepython_conflict = true
-
-[gh]
-python =
-    3.12 = py312
-    3.11 = py311
-    3.10 = py310
-    3.9 = py39
-    3.8 = py38
-
-[testenv]
-basepython =
-    3.8: {env:TOXPYTHON:python3.8}
-    3.9: {env:TOXPYTHON:python3.9}
-    3.10: {env:TOXPYTHON:python3.10}
-    3.11: {env:TOXPYTHON:python3.11}
-    3.12: {env:TOXPYTHON:python3.12}
-    {clean,lint,report,codecov}: {env:TOXPYTHON:python3}
-setenv =
-    PYTHONPATH={toxinidir}/src
-    PYTHONUNBUFFERED=yes
-passenv =
-    *
-usedevelop = false
-deps =
-    pytest
-    pytest-cov
-    requests
-    pytest-recording
-    urllib3<2
-commands =
-    {posargs:pytest --cov --cov-report=term-missing -vv tests}
-
-[testenv:codecov]
-deps =
-    codecov
-skip_install = true
-commands =
-    codecov []
-
-[testenv:lint]
-deps = pre-commit
-commands = pre-commit run --all-files
-
-[testenv:report]
-deps =
-    coverage
-skip_install = true
-commands =
-    coverage report
-    coverage html
-    coverage xml
-
-[testenv:clean]
-commands = coverage erase
-skip_install = true
-deps =
-    coverage
-
-"""
+# tox 4 supports pyproject.toml only through an inconveninent legacy_tox_ini string...
+# So we still keep tox.ini
