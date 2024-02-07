@@ -31,9 +31,21 @@ If dev branch `test` workflow succeed, a new version can be released.
 
 2. Merge
 
-   To `master`
+   To `main`
 
 3. Publish
 
-   Publishing to PyPi is done through the creation of a release in Github UI.
-   Choose the tag created in step 1, then "Publish release".
+   Publishing to PyPi is done through the creation of a release in the [Github UI](https://github.com/decitre/python-proto-topy/releases):
+   - "Draft a new release"
+   - Choose the tag created in step 1
+   - Use it to name the release
+   - Add the changes to the description field
+   - "Publish release"
+   - Check the `release` [action](https://github.com/decitre/python-proto-topy/actions/workflows/release.yml)
+
+4. Install published package
+
+   In a dedicated `venv`, do:
+
+         pip install proto_topy==<new-version>
+         python -c "import proto_topy as pt; print(pt.__version__, pt.ProtoCollection().compiler_version())"
