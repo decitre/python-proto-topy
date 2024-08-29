@@ -7,6 +7,7 @@ from shutil import which
 
 import pytest
 import requests
+
 from proto_topy import (
     CompilationFailed,
     DelimitedMessageFactory,
