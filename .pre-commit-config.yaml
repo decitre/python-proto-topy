@@ -16,11 +16,13 @@ repos:
     rev: v3.15.0
     hooks:
       - id: pyupgrade
-        args: [ --py38-plus ]
+        args: [ '--py38-plus' ]
   - repo: https://github.com/mgedmin/check-python-versions
     rev: 0.22.0
     hooks:
       - id: check-python-versions
+        args: [ '--only', 'pyproject.toml,tox.ini' ]
+        verbose: true
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:

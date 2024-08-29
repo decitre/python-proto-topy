@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "proto-topy"
-version = "1.0.4"
+version = "1.0.5"
 description = "Yet another tool that compiles .proto strings and import the outcome Python modules."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -31,7 +31,7 @@ homepage = "https://github.com/decitre/python-proto-topy"
 dev = [
     "pytest", "pytest-recording", "urllib3<2",
     "bumpver", "black", "ruff", "pre-commit",
-    "tox", "build", "twine"
+    "tox", "build", "twine", "setuptools"
 ]
 ci = [
     "virtualenv>=16.6.0", "pip>=19.1.1", "setuptools>=18.0.1",
