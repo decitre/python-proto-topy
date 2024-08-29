@@ -21,7 +21,7 @@ jobs:
       - name: Format with Black
         run: black .
       - name: Lint with Ruff
-        run: ruff .
+        run: ruff check .
 
 
   py_39_proto_203:
