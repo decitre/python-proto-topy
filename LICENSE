@@ -1,6 +1,6 @@
 MIT License
 
-proto-topy - Yet another tool that compiles .proto strings and import the outcome Python modules.
+proto-topy - Compile protobuf strings into Python module objects at runtime.
 
 Copyright (c) 2022, Emmanuel Decitre.
 

@@ -15,7 +15,7 @@ from proto_topy import (
     ProtoModule,
 )
 
-protoc_path = Path(which("protoc") or os.environ.get("PROTOC"))
+protoc_path = Path(which("protoc") or os.environ.get("PROTOC") or "")
 
 
 @pytest.fixture()
@@ -35,6 +35,12 @@ def unlink_proto_file(path_str: str) -> Path:
     if proto_path.exists():
         proto_path.unlink()
     return proto_path
+
+
+def test_proto_module_auto_generated_file_path():
+    proto = ProtoModule(source="")
+    assert proto.file_path.name.startswith("definition_")
+    assert proto.file_path.suffix == ".proto"
 
 
 def test_add_proto():
@@ -89,7 +95,7 @@ def test_compile_redundant_proto():
 
 
 def test_compile_minimal_proto():
-    from google.protobuf.timestamp_pb2 import Timestamp
+    from google.protobuf.timestamp_pb2 import Timestamp  # type: ignore[attr-defined]
 
     test5_proto = unlink_proto_file("test5.proto")
     proto = ProtoModule(
@@ -102,6 +108,7 @@ def test_compile_minimal_proto():
     }
     """,
     ).compiled(protoc_path)
+    assert proto.py is not None
     sys.modules["test5"] = proto.py
     atest5 = proto.py.Test5()
     assert isinstance(atest5.created, Timestamp)
@@ -110,7 +117,7 @@ def test_compile_minimal_proto():
 
 
 def test_compile_minimal_proto_in_a_package():
-    from google.protobuf.timestamp_pb2 import Timestamp
+    from google.protobuf.timestamp_pb2 import Timestamp  # type: ignore[attr-defined]
 
     thing_proto = unlink_proto_file("p1/p2/p3/thing.proto")
     proto = ProtoModule(
@@ -123,6 +130,8 @@ def test_compile_minimal_proto_in_a_package():
     }
     """,
     ).compiled(protoc_path)
+    assert proto.py is not None
+    assert proto.py_source is not None
     assert "# source: p1/p2/p3/thing.proto" in proto.py_source.split("\n")
     sys.modules["thing"] = proto.py
     athing = proto.py.Thing()
@@ -171,7 +180,7 @@ def test_compile_ununsed_dependency():
 
 
 def test_compile_simple_dependency():
-    from google.protobuf.timestamp_pb2 import Timestamp
+    from google.protobuf.timestamp_pb2 import Timestamp  # type: ignore[attr-defined]
 
     test_proto = unlink_proto_file("p3/p4/test6.proto")
     proto_module = ProtoModule(
@@ -198,10 +207,12 @@ def test_compile_simple_dependency():
     )
     modules = ProtoCollection(proto_module, other_proto_module)
     modules.compiled(compiler_path=protoc_path)
-    sys.modules.update({proto.name: proto.py for proto in modules.modules.values()})
-    atest6 = modules.modules[test_proto].py.Test6()
+    sys.modules.update({proto.name: proto.py for proto in modules.modules.values()})  # type: ignore[arg-type]
+    m = modules.modules[test_proto]
+    assert m.py is not None
+    atest6 = m.py.Test6()
     assert isinstance(atest6.foo.created, Timestamp)
-    for proto_module in modules.modules.values():
+    for proto_module in set(modules.modules.values()):
         del sys.modules[proto_module.name]
     unlink_proto_file("p3/p4/test6.proto")
     unlink_proto_file("p1/p2/other2.proto")
@@ -216,6 +227,8 @@ def test_encode_message():
     proto2 = ProtoModule(file_path=test8_proto, source=proto_source.format(n=8))
 
     ProtoCollection(proto1, proto2).compiled(compiler_path=protoc_path)
+    assert proto1.py is not None
+    assert proto2.py is not None
     assert array("B", proto1.py.Test7(foo=124).SerializeToString()) == array(
         "B", [8, 124]
     )
@@ -232,6 +245,7 @@ def test_decode_message():
         file_path=test9_proto,
         source='syntax = "proto3"; message Test9 { int32 foo = 1; };',
     ).compiled(protoc_path)
+    assert proto.py is not None
     aTest9 = proto.py.Test9()
     aTest9.ParseFromString(bytes(array("B", [8, 124])))
     assert aTest9.foo == 124
@@ -244,11 +258,12 @@ def test_decode_messages_stream():
         file_path=test10_proto,
         source='syntax = "proto3"; message Test10 { int32 foo = 1; };',
     ).compiled(protoc_path)
+    assert proto.py is not None
     factory = DelimitedMessageFactory(
         BytesIO(), *(proto.py.Test10(foo=foo) for foo in [1, 12])
     )
     factory.stream.seek(0)
-    assert [thing.foo for _, thing in factory.message_read(proto.py.Test10)] == [1, 12]
+    assert [thing.foo for _, thing in factory.message_read(proto.py.Test10)] == [1, 12]  # type: ignore[union-attr]
     unlink_proto_file("test10.proto")
 
 
@@ -258,6 +273,7 @@ def test_decode_messages_stream2():
         file_path=test11_proto,
         source='syntax = "proto3"; message Test11 { int32 foo = 1; };',
     ).compiled(protoc_path)
+    assert proto.py is not None
     message = DelimitedMessageFactory(
         BytesIO(), *(proto.py.Test11(foo=foo) for foo in [1, 12])
     )
@@ -265,12 +281,102 @@ def test_decode_messages_stream2():
     for fn in message.read, message.bytes_read:
         message.stream.seek(0)
         foos = []
-        for offset_data in fn():
+        for offset_data in fn():  # type: ignore[call-arg]
+            assert proto.py is not None
             aTest11 = proto.py.Test11()
             aTest11.ParseFromString(offset_data[1])
             foos.append(aTest11.foo)
         assert foos == [1, 12]
     unlink_proto_file("test11.proto")
+
+
+def test_get_compiler_path_from_env(monkeypatch, tmp_path):
+    fake_protoc = tmp_path / "protoc"
+    fake_protoc.touch()
+    monkeypatch.setenv("PROTOC", str(fake_protoc))
+    path = ProtoCollection._get_compiler_path()
+    assert path == fake_protoc
+
+
+def test_get_compiler_path_not_found(monkeypatch, tmp_path):
+    # PROTOC points to a non-existent file, and protoc is not on PATH
+    monkeypatch.delenv("PROTOC", raising=False)
+    monkeypatch.setenv("PATH", str(tmp_path))  # empty dir — no protoc here
+    with pytest.raises((FileNotFoundError, TypeError)):
+        ProtoCollection._get_compiler_path()
+
+
+def test_compiled_auto_detects_compiler():
+    test_proto = unlink_proto_file("test_auto.proto")
+    proto = ProtoModule(
+        file_path=test_proto,
+        source='syntax = "proto3"; message TestAuto { int32 x = 1; };',
+    ).compiled()  # no compiler_path — auto-detect via PATH
+    assert proto.py is not None
+    assert proto.py.TestAuto(x=7).x == 7
+    unlink_proto_file("test_auto.proto")
+
+
+def test_compiler_version_auto_detects():
+    version = ProtoCollection().compiler_version()  # no compiler_path
+    assert version is not None and tuple(map(int, version.split("."))) > (3, 0, 0)
+
+
+def test_delimited_message_factory_with_message_type():
+    test_proto = unlink_proto_file("test_dmf.proto")
+    proto = ProtoModule(
+        file_path=test_proto,
+        source='syntax = "proto3"; message TestDmf { int32 v = 1; };',
+    ).compiled(protoc_path)
+    assert proto.py is not None
+    msg_type = proto.py.TestDmf
+    factory = DelimitedMessageFactory(
+        BytesIO(), msg_type(v=5), msg_type(v=9), message_type=msg_type
+    )
+    factory.stream.seek(0)
+    results = [msg.v for _, msg in factory.read()]  # type: ignore[union-attr,call-arg]
+    assert results == [5, 9]
+    unlink_proto_file("test_dmf.proto")
+
+
+def test_delimited_message_factory_read_raises():
+    factory = DelimitedMessageFactory.__new__(DelimitedMessageFactory)
+    with pytest.raises(NotImplementedError):
+        list(DelimitedMessageFactory.read(factory))
+
+
+def test_delimited_message_factory_write_type_error():
+    test_proto_a = unlink_proto_file("test_dmf_a.proto")
+    test_proto_b = unlink_proto_file("test_dmf_b.proto")
+    proto_a = ProtoModule(
+        file_path=test_proto_a,
+        source='syntax = "proto3"; message DmfA { int32 v = 1; };',
+    ).compiled(protoc_path)
+    proto_b = ProtoModule(
+        file_path=test_proto_b,
+        source='syntax = "proto3"; message DmfB { int32 v = 1; };',
+    ).compiled(protoc_path)
+    assert proto_a.py is not None
+    assert proto_b.py is not None
+    factory = DelimitedMessageFactory(BytesIO(), proto_a.py.DmfA(v=1))
+    with pytest.raises(TypeError):
+        factory.write(proto_b.py.DmfB(v=2))
+    unlink_proto_file("test_dmf_a.proto")
+    unlink_proto_file("test_dmf_b.proto")
+
+
+def test_delimited_message_factory_rewind():
+    test_proto = unlink_proto_file("test_rewind.proto")
+    proto = ProtoModule(
+        file_path=test_proto,
+        source='syntax = "proto3"; message TestRewind { int32 v = 1; };',
+    ).compiled(protoc_path)
+    assert proto.py is not None
+    factory = DelimitedMessageFactory(BytesIO(), proto.py.TestRewind(v=42))
+    factory.rewind()
+    assert factory.stream.tell() == 0
+    assert factory.offset == 0
+    unlink_proto_file("test_rewind.proto")
 
 
 @pytest.mark.vcr
@@ -283,6 +389,7 @@ def test_google_addressbook_example(address_book):
         file_path=adressbook_proto,
         source=address_book,
     ).compiled(protoc_path)
+    assert proto.py is not None
     sys.modules["addressbook"] = proto.py
 
     # Produce serialized address book
