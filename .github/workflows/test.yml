@@ -36,6 +36,7 @@ jobs:
           version: ${{ matrix.protoc }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: uv run --extra ci tox -e py310,py311,py312,py313,py314
+      - run: ls -la coverage.xml || echo "coverage.xml not found"
       - uses: codecov/codecov-action@v5
         if: matrix.os == 'ubuntu-latest' && matrix.protoc == '25.x'
         with:

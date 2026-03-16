@@ -121,7 +121,7 @@ deps = [
     "urllib3",
 ]
 commands = [
-    ["pytest", "--cov=src", "--cov-append", "--cov-report=term-missing", "--cov-report=xml", "-vv", "tests"],
+    ["pytest", "--cov=src", "--cov-append", "--cov-report=term-missing", "--cov-report=xml:{toxinidir}/coverage.xml", "-vv", "tests"],
 ]
 
 [tool.tox.env.clean]
