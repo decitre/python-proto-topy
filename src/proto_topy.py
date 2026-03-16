@@ -20,7 +20,7 @@ from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.message import Message
 from google.protobuf.message_factory import GetMessageClassesForFiles
 
-__version__ = "2.0.0rc0"
+__version__ = "2.0.0rc1"
 
 logger = getLogger(Path(__file__).name)
 
