@@ -10,7 +10,4 @@
 # software. In the absence of such agreement, the use of the software is not
 # allowed.
 
-from setuptools import setup
-
-if __name__ == "__main__":
-    setup()
+__import__("setuptools").setup()

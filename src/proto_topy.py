@@ -1,4 +1,5 @@
 import importlib.util
+import itertools
 import os
 import sys
 import types
@@ -8,16 +9,18 @@ from pathlib import Path
 from shutil import which
 from subprocess import PIPE, Popen
 from tempfile import TemporaryDirectory
-from typing import BinaryIO, ClassVar, Dict, Generator, Tuple, Union
+from typing import BinaryIO, Dict, Generator, Tuple, Type
 
 from google.protobuf import descriptor_pool
-from google.protobuf.descriptor_pb2 import FileDescriptorSet
+from google.protobuf.descriptor_pb2 import (
+    FileDescriptorSet,  # type: ignore[attr-defined]
+)
 from google.protobuf.internal.decoder import _DecodeVarint32
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.message import Message
 from google.protobuf.message_factory import GetMessageClassesForFiles
 
-__version__ = version("proto-topy")
+__version__ = "2.0.0"
 
 logger = getLogger(Path(__file__).name)
 
@@ -49,25 +52,30 @@ class ProtoModule:
     package_path: Path
     file_path: Path
     source: str
-    py_source: str
-    py: types.ModuleType
+    py_source: str | None
+    py: types.ModuleType | None
 
-    def __init__(self, file_path: Path, source: str):
-        self.file_path = file_path
+    _counter = itertools.count(1)
+
+    def __init__(self, source: str, file_path: Path | str | None = None):
+        if file_path is None:
+            file_path = f"definition_{next(self._counter)}.proto"
+        self.file_path = Path(file_path)
         self.name, _, _ = self.file_path.name.partition(".proto")
         self.source = source
         self.package_path = self.file_path.parent
-        self.py = None
-        self.py_source = None
+        self.py: types.ModuleType | None = None
+        self.py_source: str | None = None
 
-    def _set_module(self, content: str, global_scope: dict = None):
+    def _set_module(self, content: str, global_scope: dict | None = None):
         self.py_source = content
         spec = importlib.util.spec_from_loader(self.name, loader=None)
+        assert spec is not None
         compiled_content = compile(content, self.name, "exec")
         self.py = importlib.util.module_from_spec(spec)
         exec(compiled_content, self.py.__dict__)
 
-    def compiled(self, compiler_path: Path = None) -> "ProtoModule":
+    def compiled(self, compiler_path: Path | None = None) -> "ProtoModule":
         """
         Returns the ProtoModule instance in a compiled state:
 
@@ -101,15 +109,15 @@ class ProtoCollection:
     - messages: A dictionary of protobuf messages classes indexed by their proto names
     """
 
-    modules: Dict[Path, ProtoModule]
-    descriptor_data: bytes
-    descriptor_set: FileDescriptorSet
+    modules: Dict[Path | str, ProtoModule]
+    descriptor_data: bytes | None
+    descriptor_set: "FileDescriptorSet | None"
     messages: dict
 
     def __init__(self, *protos: ProtoModule):
         self.modules = {}
-        self.descriptor_data = None
-        self.descriptor_set = None
+        self.descriptor_data: bytes | None = None
+        self.descriptor_set: "FileDescriptorSet | None" = None
         self.messages = {}
 
         for proto in protos or []:
@@ -119,19 +127,20 @@ class ProtoCollection:
         if proto.file_path in self.modules:
             raise KeyError(f"{proto.file_path} already added")
         self.modules[proto.file_path] = proto
+        self.modules[str(proto.file_path)] = proto
 
     @staticmethod
     def _get_compiler_path() -> Path:
         if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
             compiler_path = Path(os.environ["PROTOC"])
         else:
-            compiler_path = Path(which("protoc"))
+            compiler_path = Path(which("protoc") or "")
         if not compiler_path.is_file():
             raise FileNotFoundError("protoc compiler not found")
         return compiler_path
 
     def compiled(
-        self, compiler_path: Path = None, global_scope: dict = None
+        self, compiler_path: Path | None = None, global_scope: dict | None = None
     ) -> "ProtoCollection":
         if not compiler_path:
             compiler_path = ProtoCollection._get_compiler_path()
@@ -169,14 +178,14 @@ class ProtoCollection:
                 self.descriptor_data = f.read()
             self.descriptor_set = FileDescriptorSet.FromString(self.descriptor_data)
 
-            pool = descriptor_pool.DescriptorPool()
+            pool = descriptor_pool.DescriptorPool()  # type: ignore[possibly-missing-implicit-call]
             for file_descriptor_proto in self.descriptor_set.file:
                 pool.Add(file_descriptor_proto)
             self.messages = GetMessageClassesForFiles(
                 [fdp.name for fdp in self.descriptor_set.file], pool
             )
 
-            self._add_init_files(dir)
+            self._add_init_files(Path(dir))
 
             sys.path.append(dir)
             for proto in self.modules.values():
@@ -187,7 +196,7 @@ class ProtoCollection:
             sys.path.pop()
         return self
 
-    def compiler_version(self, compiler_path: Path = None) -> str:
+    def compiler_version(self, compiler_path: Path | None = None) -> str | None:
         """
         Returns the result of a `protoc --version` command.
 
@@ -202,8 +211,9 @@ class ProtoCollection:
             [],
             raise_exception=True,
         )
-        if outs:
+        if outs:  # pragma: no branch
             return outs.split()[-1].decode()
+        return None  # pragma: no cover
 
     @staticmethod
     def _do_compile(
@@ -217,7 +227,6 @@ class ProtoCollection:
         compile_command.extend(compile_to_py_options)
         compile_command.extend(proto_source_files)
         compilation = Popen(compile_command, stdout=PIPE, stderr=PIPE)
-        compilation.wait()
         outs, errs = compilation.communicate()
         if raise_exception:
             ProtoCollection._raise_for_errs(errs)
@@ -260,24 +269,21 @@ class DelimitedMessageFactory:
     """
 
     def __init__(
-        self, stream: BinaryIO, *messages: Message, message_type: ClassVar = None
+        self, stream: BinaryIO, *messages: Message, message_type: Type[Message] | None = None
     ):
         self.stream = stream
         self.message_type = message_type
         self.offset = 0
         if message_type is None:
-            self.read = self.bytes_read
+            self.read = self.bytes_read  # type: ignore[method-assign]
         else:
-            self.read = self.message_read
-        if messages:
+            self.read = self.message_read  # type: ignore[method-assign]
+        if messages:  # pragma: no branch
             self.write(*messages)
 
     def read(
         self,
-    ) -> Union[
-        Generator[Tuple[int, Message], None, None],
-        Generator[Tuple[int, bytearray], None, None],
-    ]:
+    ) -> Generator[Tuple[int, Message], None, None] | Generator[Tuple[int, bytearray], None, None]:
         raise NotImplementedError()
 
     def write(self, *messages: Message):
@@ -308,7 +314,7 @@ class DelimitedMessageFactory:
         :return: tuple of message offset and message bytes
         """
         buf = bytearray(self.stream.read(10))
-        while buf:
+        while buf:  # pragma: no branch
             msg_len, new_pos = _DecodeVarint32(buf, 0)
             self.offset += new_pos
             buf = buf[new_pos:]
@@ -325,7 +331,7 @@ class DelimitedMessageFactory:
             buf.extend(self.stream.read(10 - len(buf)))
 
     def message_read(
-        self, message_type: ClassVar = None
+        self, message_type: Type[Message] | None = None
     ) -> Generator[Tuple[int, Message], None, None]:
         """
         :return: tuple of message offset and decoded bytes
@@ -333,7 +339,8 @@ class DelimitedMessageFactory:
         buf = bytearray(self.stream.read(10))
         self.offset += 10
         message_type = message_type or self.message_type
-        while buf:
+        assert message_type is not None
+        while buf:  # pragma: no branch
             message = message_type()
             msg_len, new_pos = _DecodeVarint32(buf, 0)
             self.offset += new_pos

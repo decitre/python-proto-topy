@@ -1,51 +1,74 @@
 ## Linting & Testing
 
-    pip install -e '.[dev]'
-    pre-commit autoupdate
-    pre-commit install
-    pre-commit run --all-files
-    tox
+See [TESTING.md](TESTING.md) for the full test strategy and coverage details.
 
-`tox` uses by default the installed `protoc` compiler. The gh repo `test` workflow considers `protoc` in various versions (`3.20.3`, `21.12`, `25.x`).
-Contributors using a macOS workstation shall have a look at `tests/tox_mac.sh` to test against `protobuf`, `protobuf@21` and `protobuf@3` bottles.
- 
+    uv pip install -e '.[dev]'
+    pre-commit install
+    tox -e lint   # ruff check + ty check
+    tox           # all Python versions
+
+`tox` uses the `protoc` compiler found in `PATH`. The CI workflow tests against protoc `25.x` and `34.x`.
+On macOS, install protoc with `brew install protobuf`.
+
 ## Releasing
 
-If dev branch `test` workflow succeeds, a new version can be released.
+### 1. Create a release branch
 
-1. Version
+Check the current version in `pyproject.toml`:
 
-    Use `bumpver` on dev branches. First, with `--dry`, then without :)
-    
-    Breaking changes:
-    
-        bumpver update --major --dry
-    
-    Additional features:
-    
-        bumpver update --minor --dry
-    
-    Other:
-    
-        bumpver update --patch --dry
+    grep current_version pyproject.toml   # e.g. -> 1.0.5
 
-2. Merge
+Create a branch for the next version (without the `rc` suffix):
 
-   To `main`
+    git checkout -b release/2.0.0
 
-3. Publish
+### 2. Make your changes
 
-   Publishing to PyPi is done through the creation of a release in the [Github UI](https://github.com/decitre/python-proto-topy/releases):
-   - "Draft a new release"
-   - Choose the tag created in step 1
-   - Use it to name the release
-   - Add the changes to the description field
-   - "Publish release"
-   - Check the `release` [action](https://github.com/decitre/python-proto-topy/actions/workflows/release.yml)
+Implement bug fixes, new features, dependency updates, README and CHANGELOG notes, etc. Commit and push.
 
-4. Install published package
+### 3. Bump to release candidate
 
-   In a dedicated `venv`, do:
+Push the branch to remote first, then bump:
 
-         pip install proto_topy==<new-version>
-         python -c "import proto_topy as pt; print(pt.__version__, pt.ProtoCollection().compiler_version())"
+    git push -u origin release/2.0.0
+    bumpver update --major --tag=rc   # 1.0.5 -> 2.0.0rc0
+
+bumpver commits, tags `v2.0.0rc0`, and pushes automatically.
+
+### 4. Open a pull request
+
+Open a PR from `release/2.0.0` against `main`. Ensure:
+- the `test` workflow jobs are all green
+- Codecov still reports coverage at https://app.codecov.io/gh/decitre/python-proto-topy
+
+If further changes are needed, iterate:
+
+    bumpver update --tag-num   # 2.0.0rc0 -> 2.0.0rc1
+
+### 5. Bump to final version
+
+Once the RC is green:
+
+    bumpver update --tag=final   # 2.0.0rc1 -> 2.0.0
+
+Confirm the workflow is still green.
+
+### 6. Merge into `main`
+
+### 7. Publish on PyPI
+
+Create a release in the [GitHub UI](https://github.com/decitre/python-proto-topy/releases):
+
+- "Draft a new release"
+- Choose the tag `v2.0.0` created by `bumpver` in step 5 (not the `rc` tags)
+- Use the version as the release name
+- Add the changes to the description
+- "Publish release"
+- Check the `release` [action](https://github.com/decitre/python-proto-topy/actions/workflows/release.yml)
+
+### 8. Verify the published package
+
+In a dedicated virtualenv:
+
+    uv pip install proto-topy==2.0.0
+    python -c "import proto_topy as pt; print(pt.__version__, pt.ProtoCollection().compiler_version())"
